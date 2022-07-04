@@ -5,7 +5,7 @@
     "curation": {
       "type": "rust",
       "package": "curation",
-      "candid": "curation.did"
+      "candid": "candid/curation.did"
     }
   },
   "defaults": {

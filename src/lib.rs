@@ -1,8 +1,9 @@
 use candid::{candid_method, export_service, Principal};
+use ic_cdk::caller;
 use ic_cdk_macros::*;
 
 mod ledger;
-mod proxy;
+// mod proxy;
 
 /* UPDATE METHODS */
 
@@ -59,7 +60,7 @@ fn query(sort_key: String, page: Option<usize>) -> Result<Vec<String>, &'static 
 fn init(nft_canister_id: Option<Principal>) {
     ledger::with_mut(|ledger| {
         ledger.nft_canister_id = nft_canister_id.unwrap_or(Principal::management_canister());
-        ledger.custodians.push(ic_cdk::caller());
+        ledger.custodians.push(caller());
     });
 }
 
@@ -80,6 +81,6 @@ mod tests {
         use std::path::PathBuf;
 
         let dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-        write(dir.join("curation.did"), export_candid()).expect("Write failed.");
+        write(dir.join("candid/").join("curation.did"), export_candid()).expect("Write failed.");
     }
 }
