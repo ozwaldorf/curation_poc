@@ -49,7 +49,7 @@ mod ledger {
             }
         }
 
-        pub fn remove_and_push(&mut self, key: &str, id: String) {
+        pub fn push(&mut self, key: &str, id: String) {
             // remove and push; time based indexes
             let sort_index = self.sort_index.entry(key.to_string()).or_default();
             if let Some(index) = sort_index.iter().position(|token| *token == id.clone()) {
@@ -86,30 +86,30 @@ mod ledger {
                 "makeListing" => {
                     // TODO: price index
 
-                    self.remove_and_push("recent_listings", token_id.clone());
+                    self.push("last_listing", token_id.clone());
                 }
                 "cancelListing" => {
-                    self.remove("recent_listings", token_id.clone());
+                    self.remove("last_listing", token_id.clone());
                 }
 
                 "makeOffer" => {
-                    self.remove_and_push("recent_offers", token_id.clone());
+                    self.push("last_offer", token_id.clone());
                 }
                 "cancelOffer" => {
-                    self.remove("recent_offers", token_id.clone());
+                    self.remove("last_offer", token_id.clone());
                 }
 
                 "directBuy" => {
-                    self.remove_and_push("recent_sales", token_id.clone());
+                    self.push("last_sale", token_id.clone());
                 }
                 "acceptOffer" => {
-                    self.remove_and_push("recent_sales", token_id.clone());
+                    self.push("last_sale", token_id.clone());
                 }
                 _ => {
                     return Err("invalid operation");
                 }
             }
-            self.remove_and_push("all", token_id.clone());
+            self.push("all", token_id.clone());
 
             Ok(())
         }
@@ -139,29 +139,35 @@ fn insert(token_id: String, event: ledger::Event) -> Result<(), &'static str> {
 ///
 /// # Arguments
 /// * `sort_key` - sort key. Possible options include:
-///    - `recently_listed` - recently listed tokens.
-///    - `recently_modified` - recently modified tokens.
-///    - `listing_price` - listing price.
-/// * `page` - page number. If `null`, returns the last page of results
+///    - `last_listing` - recently listed tokens.
+///    - `last_offer` - recently modified tokens.
+///    - `last_sale` - recently sold tokens.
+///    - `all` - all indexed tokens.
+/// * `page` - page number. If `null`, returns the last (most recent) page of results. Order is backwards
 #[query]
 #[candid_method]
-fn query(sort_key: String, page: Option<u64>) -> Result<Vec<String>, &'static str> {
+fn query(sort_key: String, page: Option<usize>) -> Result<Vec<String>, &'static str> {
     ledger::with(|ledger| {
-        let page_size = 64;
+        let size = 64 as usize;
         let indexes = &ledger.sort_index;
         match indexes.get(&sort_key) {
+            None => Err("invalid sort key"),
             Some(sorted) => {
-                let max_len = sorted.len() as u64;
-                let page = page.unwrap_or(max_len / page_size);
-                let page_start = page * page_size;
-                let mut page_end = page_start + page_size;
-                if max_len < page_end {
-                    page_end = max_len
+                let max_len = sorted.len();
+                let page = page.unwrap_or(max_len / size);
+
+                let start = page * size;
+                if start > max_len {
+                    return Ok(vec![]); // return early if requesting data past whats available
                 }
 
-                return Ok(sorted[page_start as usize..page_end as usize].to_vec());
+                let mut end = start + size;
+                if max_len < end {
+                    end = max_len
+                }
+
+                Ok(sorted[start..end].to_vec())
             }
-            None => return Err("invalid sort key"),
         }
     })
 }
