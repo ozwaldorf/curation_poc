@@ -1,11 +1,8 @@
+use candid::{candid_method, export_service, CandidType, Deserialize, Nat, Principal};
+use ic_cdk_macros::*;
 use std::{cell::RefCell, collections::HashMap};
 
-use candid::{candid_method, export_service, CandidType, Deserialize, Nat, Principal};
-
-use ic_cdk_macros::*;
-
 mod ledger {
-
     use super::*;
 
     #[derive(CandidType, Clone, Deserialize, Debug)]
@@ -42,82 +39,92 @@ mod ledger {
         pub filter_maps: HashMap<String, HashMap<String, Vec<String>>>,
     }
 
-    thread_local! {
-        pub static LEDGER: RefCell<Ledger>  = RefCell::new(Ledger {
-            nft_canister_id: Principal::management_canister(),
-            custodians: vec![],
-            sort_index: HashMap::new(),
-            filter_maps: HashMap::new(),
-        });
-    }
+    impl Ledger {
+        pub fn new() -> Self {
+            Ledger {
+                nft_canister_id: Principal::management_canister(),
+                custodians: vec![],
+                sort_index: HashMap::new(),
+                filter_maps: HashMap::new(),
+            }
+        }
 
-    pub fn with_mut(f: impl FnOnce(&mut Ledger)) {
-        LEDGER.with(|ledger| f(&mut ledger.borrow_mut()))
-    }
-
-    fn remove_and_push(key: &str, id: String) {
-        with_mut(|ledger| {
+        pub fn remove_and_push(&mut self, key: &str, id: String) {
             // remove and push; time based indexes
-            let sort_index = ledger.sort_index.entry(key.to_string()).or_default();
+            let sort_index = self.sort_index.entry(key.to_string()).or_default();
             if let Some(index) = sort_index.iter().position(|token| *token == id.clone()) {
                 sort_index.remove(index);
             }
             sort_index.push(id.clone());
-        });
-    }
+        }
 
-    fn remove(key: &str, id: String) {
-        with_mut(|ledger| {
+        fn remove(&mut self, key: &str, id: String) {
             // remove; time based indexes
-            let sort_index = ledger.sort_index.entry(key.to_string()).or_default();
+            let sort_index = self.sort_index.entry(key.to_string()).or_default();
             if let Some(index) = sort_index.iter().position(|token| *token == id.clone()) {
                 sort_index.remove(index);
             }
-        });
+        }
+
+        pub fn insert_and_index(
+            &mut self,
+            token_id: String,
+            event: Event,
+        ) -> Result<(), &'static str> {
+            /*
+            details:
+                - token id
+                - nft_canister_id
+                - price
+            */
+            match event.operation.as_str() {
+                // load new metadata into canister
+                "mint" => {
+                    // TODO: grab metadata from nft contract, insert to trait filter map
+                }
+
+                "makeListing" => {
+                    // TODO: price index
+
+                    self.remove_and_push("recent_listings", token_id.clone());
+                }
+                "cancelListing" => {
+                    self.remove("recent_listings", token_id.clone());
+                }
+
+                "makeOffer" => {
+                    self.remove_and_push("recent_offers", token_id.clone());
+                }
+                "cancelOffer" => {
+                    self.remove("recent_offers", token_id.clone());
+                }
+
+                "directBuy" => {
+                    self.remove_and_push("recent_sales", token_id.clone());
+                }
+                "acceptOffer" => {
+                    self.remove_and_push("recent_sales", token_id.clone());
+                }
+                _ => {
+                    return Err("invalid operation");
+                }
+            }
+            self.remove_and_push("all", token_id.clone());
+
+            Ok(())
+        }
     }
 
-    pub fn insert_and_index(token_id: String, event: Event) -> Result<(), &'static str> {
-        /*
-        details:
-            - token id
-            - nft_canister_id
-            - price
-        */
-        match event.operation.as_str() {
-            // load new metadata into canister
-            "mint" => {
-                // TODO: grab metadata from nft contract, insert to trait filter map
-            }
+    thread_local! {
+        pub static LEDGER: RefCell<Ledger>  = RefCell::new(Ledger::new());
+    }
 
-            "makeListing" => {
-                // TODO: price index
+    pub fn with<T, F: FnOnce(&Ledger) -> T>(f: F) -> T {
+        LEDGER.with(|ledger| f(&ledger.borrow()))
+    }
 
-                remove_and_push("recent_listings", token_id.clone());
-            }
-            "cancelListing" => {
-                remove("recent_listings", token_id.clone());
-            }
-
-            "makeOffer" => {
-                remove_and_push("recent_offers", token_id.clone());
-            }
-            "cancelOffer" => {
-                remove("recent_offers", token_id.clone());
-            }
-
-            "directBuy" => {
-                remove_and_push("recent_sales", token_id.clone());
-            }
-            "acceptOffer" => {
-                remove_and_push("recent_sales", token_id.clone());
-            }
-            _ => {
-                return Err("invalid operation");
-            }
-        }
-        remove_and_push("all", token_id.clone());
-
-        Ok(())
+    pub fn with_mut<T, F: FnOnce(&mut Ledger) -> T>(f: F) -> T {
+        LEDGER.with(|ledger| f(&mut ledger.borrow_mut()))
     }
 }
 
@@ -125,10 +132,8 @@ mod ledger {
 #[update]
 #[candid_method(update)]
 fn insert(token_id: String, event: ledger::Event) -> Result<(), &'static str> {
-    ledger::insert_and_index(token_id, event)
+    ledger::with_mut(|ledger| ledger.insert_and_index(token_id, event))
 }
-
-//
 
 /// query sorted indexes.
 ///
@@ -140,10 +145,9 @@ fn insert(token_id: String, event: ledger::Event) -> Result<(), &'static str> {
 /// * `page` - page number. If `null`, returns the last page of results
 #[query]
 #[candid_method]
-fn query(sort_key: String, page: Option<u64>) -> Vec<String> {
-    let page_size = 64;
-    let mut result = vec![];
-    ledger::with_mut(|ledger| {
+fn query(sort_key: String, page: Option<u64>) -> Result<Vec<String>, &'static str> {
+    ledger::with(|ledger| {
+        let page_size = 64;
         let indexes = &ledger.sort_index;
         match indexes.get(&sort_key) {
             Some(sorted) => {
@@ -155,12 +159,11 @@ fn query(sort_key: String, page: Option<u64>) -> Vec<String> {
                     page_end = max_len
                 }
 
-                result = sorted[page_start as usize..page_end as usize].to_vec();
+                return Ok(sorted[page_start as usize..page_end as usize].to_vec());
             }
-            None => {}
+            None => return Err("invalid sort key"),
         }
-    });
-    result
+    })
 }
 
 #[init]

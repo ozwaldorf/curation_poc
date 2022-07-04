@@ -20,7 +20,8 @@ type GenericValue = variant {
   TextContent : text;
 };
 type Result = variant { Ok; Err : text };
+type Result_1 = variant { Ok : vec text; Err : text };
 service : (opt principal) -> {
   insert : (text, Event) -> (Result);
-  "query" : (text, opt nat64) -> (vec text);
+  "query" : (text, opt nat64) -> (Result_1);
 }
