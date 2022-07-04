@@ -1,6 +1,10 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use std::{cell::RefCell, collections::HashMap};
 
+thread_local! {
+  pub static LEDGER: RefCell<Ledger>  = RefCell::new(Ledger::new());
+}
+
 #[derive(CandidType, Clone, Deserialize, Debug)]
 pub enum GenericValue {
     BoolContent(bool),
@@ -50,7 +54,7 @@ impl Ledger {
         }
     }
 
-    pub fn push(&mut self, key: &str, id: String) {
+    fn push(&mut self, key: &str, id: String) {
         // remove and push; time based indexes
         let sort_index = self.sort_index.entry(key.to_string()).or_default();
         if let Some(index) = sort_index.iter().position(|token| *token == id.clone()) {
@@ -110,10 +114,6 @@ impl Ledger {
 
         Ok(())
     }
-}
-
-thread_local! {
-    pub static LEDGER: RefCell<Ledger>  = RefCell::new(Ledger::new());
 }
 
 pub fn with<T, F: FnOnce(&Ledger) -> T>(f: F) -> T {
