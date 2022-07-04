@@ -44,7 +44,12 @@ mod ledger {
             Ledger {
                 nft_canister_id: Principal::management_canister(),
                 custodians: vec![],
-                sort_index: HashMap::new(),
+                sort_index: HashMap::from([
+                    ("last_listing".to_string(), vec![]),
+                    ("last_offer".to_string(), vec![]),
+                    ("last_sale".to_string(), vec![]),
+                    ("all".to_string(), vec![]),
+                ]),
                 filter_maps: HashMap::new(),
             }
         }
