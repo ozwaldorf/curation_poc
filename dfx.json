@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "dfx": "0.9.3",
+  "canisters": {
+    "curation": {
+      "type": "rust",
+      "package": "curation",
+      "candid": "curation.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": "",
+      "args": ""
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  }
+}

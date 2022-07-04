@@ -1,0 +1,26 @@
+type Event = record {
+  operation : text;
+  details : vec record { text; GenericValue };
+};
+type GenericValue = variant {
+  Nat64Content : nat64;
+  Nat32Content : nat32;
+  BoolContent : bool;
+  Nat8Content : nat8;
+  Int64Content : int64;
+  NatContent : nat;
+  Nat16Content : nat16;
+  Int32Content : int32;
+  Int8Content : int8;
+  FloatContent : float64;
+  Int16Content : int16;
+  BlobContent : vec nat8;
+  NestedContent : vec record { text; GenericValue };
+  Principal : principal;
+  TextContent : text;
+};
+type Result = variant { Ok; Err : text };
+service : (opt principal) -> {
+  insert : (text, Event) -> (Result);
+  "query" : (text, opt nat64) -> (vec text);
+}
