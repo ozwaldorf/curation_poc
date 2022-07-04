@@ -57,18 +57,14 @@ impl Ledger {
     fn push(&mut self, key: &str, id: String) {
         // remove and push; time based indexes
         let sort_index = self.sort_index.entry(key.to_string()).or_default();
-        if let Some(index) = sort_index.iter().position(|token| *token == id.clone()) {
-            sort_index.remove(index);
-        }
+        sort_index.retain(|token| *token != id);
         sort_index.push(id.clone());
     }
 
     fn remove(&mut self, key: &str, id: String) {
         // remove; time based indexes
         let sort_index = self.sort_index.entry(key.to_string()).or_default();
-        if let Some(index) = sort_index.iter().position(|token| *token == id.clone()) {
-            sort_index.remove(index);
-        }
+        sort_index.retain(|token| *token != id);
     }
 
     pub fn insert_and_index(&mut self, token_id: String, event: Event) -> Result<(), &'static str> {
