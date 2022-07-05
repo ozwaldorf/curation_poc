@@ -24,19 +24,25 @@ pub enum GenericValue {
     NestedContent(Vec<(String, GenericValue)>),
 }
 
-#[derive(CandidType, Clone, Deserialize, Debug)]
-pub struct Event {
-    pub operation: String,
-    pub details: HashMap<String, GenericValue>,
-}
-
 pub type SortIndex = HashMap<String, Vec<String>>;
+
+pub struct TokenData {
+    pub properties: HashMap<String, GenericValue>,
+    // pub events: Vec<Event>, // do we want to store txn history at all??
+    pub price: Option<Nat>,
+    pub best_offer: Option<Nat>,
+    pub last_listing: Option<Nat>,
+    pub last_offer: Option<Nat>,
+    pub last_sale: Option<Nat>,
+}
+pub type TokenCache = HashMap<String, TokenData>;
 
 pub struct Ledger {
     pub nft_canister_id: Principal,
     pub custodians: Vec<Principal>,
     pub sort_index: SortIndex,
     pub filter_maps: HashMap<String, HashMap<String, Vec<String>>>,
+    pub token_cache: TokenCache,
 }
 
 impl Ledger {
@@ -51,6 +57,7 @@ impl Ledger {
                 ("all".to_string(), vec![]),
             ]),
             filter_maps: HashMap::new(),
+            token_cache: HashMap::new(),
         }
     }
 
@@ -70,9 +77,11 @@ impl Ledger {
     pub fn insert_and_index(&mut self, token_id: String, event: Event) -> Result<(), &'static str> {
         /*
         details:
-            - token id
-            - nft_canister_id
-            - price
+            - token id: string
+            - nft_canister_id: principal
+            - price: opt nat
+            - buyer: opt principal
+            - seller: opt principal
         */
         match event.operation.as_str() {
             // load new metadata into canister
@@ -80,16 +89,19 @@ impl Ledger {
                 // TODO: grab metadata from nft contract, insert to trait filter map
             }
 
+            // update indexes
             "makeListing" => {
                 // TODO: price index
 
                 self.push("last_listing", token_id.clone());
             }
             "cancelListing" => {
+                // TODO: price index
                 self.remove("last_listing", token_id.clone());
             }
 
             "makeOffer" => {
+                // TODO: offer price index
                 self.push("last_offer", token_id.clone());
             }
             "cancelOffer" => {

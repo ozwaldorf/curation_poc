@@ -1,16 +1,23 @@
-use candid::{candid_method, export_service, Principal};
+use candid::{candid_method, export_service, CandidType, Deserialize, Principal};
 use ic_cdk::caller;
 use ic_cdk_macros::*;
+use std::collections::HashMap;
 
 mod ledger;
 // mod proxy;
 
 /* UPDATE METHODS */
 
+#[derive(CandidType, Clone, Deserialize, Debug)]
+pub struct Event {
+    pub operation: String,
+    pub details: HashMap<String, ledger::GenericValue>,
+}
+
 // insert token transaction
 #[update]
 #[candid_method(update)]
-fn insert(token_id: String, event: ledger::Event) -> Result<(), &'static str> {
+fn insert(token_id: String, event: Event) -> Result<(), &'static str> {
     ledger::with_mut(|ledger| ledger.insert_and_index(token_id, event))
 }
 
