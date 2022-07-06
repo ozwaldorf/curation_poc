@@ -79,7 +79,13 @@ fn query(sort_key: String, page: usize) -> QueryResponse {
 #[update]
 #[candid_method(update)]
 fn insert(event: ledger::Event) -> Result<(), &'static str> {
-    ledger::with_mut(|ledger| ledger.index_event(event))
+    ledger::with_mut(|ledger| {
+        if event.nft_canister_id != ledger.nft_canister_id {
+            return Err("Not accepting data for this canister");
+        }
+
+        ledger.index_event(event)
+    })
 }
 
 /* CANISTER METHODS */
