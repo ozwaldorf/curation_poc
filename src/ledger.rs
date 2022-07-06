@@ -1,4 +1,5 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
+use ic_cdk::api::time;
 use std::{cell::RefCell, collections::HashMap};
 
 thread_local! {
@@ -36,10 +37,9 @@ pub struct Event {
     pub seller: Option<Principal>,
 }
 
-pub type SortIndex = HashMap<String, Vec<String>>;
-
-#[derive(Default)]
+#[derive(Default, Clone, Deserialize, Debug, CandidType)]
 pub struct TokenData {
+    pub id: String,
     pub traits: Option<HashMap<String, GenericValue>>,
     // pub events: Vec<Event>, // do we want to store txn history at all??
     pub price: Option<Nat>,
@@ -49,14 +49,14 @@ pub struct TokenData {
     pub last_sale: Option<Nat>,
 }
 
-pub type TokenCache = HashMap<String, TokenData>;
+pub type Index = HashMap<String, Vec<String>>;
 
 pub struct Ledger {
     pub nft_canister_id: Principal,
     pub custodians: Vec<Principal>,
-    pub sort_index: SortIndex,
-    pub filter_maps: HashMap<String, HashMap<String, Vec<String>>>,
-    pub token_cache: TokenCache,
+    pub sort_index: Index,
+    pub filter_maps: HashMap<String, Index>,
+    pub db: HashMap<String, TokenData>,
 }
 
 impl Ledger {
@@ -65,17 +65,53 @@ impl Ledger {
             nft_canister_id: Principal::management_canister(),
             custodians: vec![],
             sort_index: HashMap::from([
+                ("listing_price".to_string(), vec![]),
+                ("offer_price".to_string(), vec![]),
                 ("last_listing".to_string(), vec![]),
                 ("last_offer".to_string(), vec![]),
                 ("last_sale".to_string(), vec![]),
                 ("all".to_string(), vec![]),
             ]),
             filter_maps: HashMap::new(),
-            token_cache: HashMap::new(),
+            db: HashMap::new(),
         }
     }
 
-    fn push(&mut self, key: &str, id: String) {
+    fn push_sort_listing(&mut self, token_id: String) {
+        let sorted = self.sort_index.get_mut("listing_price").unwrap();
+        let mut db = self.db.clone();
+
+        // check if key exists already
+        if !sorted.contains(&token_id) {
+            sorted.push(token_id);
+        }
+
+        sorted.sort_by_cached_key(
+            |id| match db.entry(id.to_string()).or_default().price.clone() {
+                Some(price) => price,
+                None => Nat::from(0),
+            },
+        );
+    }
+
+    fn _push_sort_offer(&mut self, token_id: String) {
+        let sorted = self.sort_index.get_mut("offer_price").unwrap();
+        let mut db = self.db.clone();
+
+        // check if key exists already
+        if !sorted.contains(&token_id) {
+            sorted.push(token_id);
+        }
+
+        sorted.sort_by_cached_key(|id| {
+            match db.entry(id.to_string()).or_default().best_offer.clone() {
+                Some(price) => price,
+                None => Nat::from(0),
+            }
+        });
+    }
+
+    fn shift_or_push(&mut self, key: &str, id: String) {
         // remove and push; time based indexes
         let sort_index = self.sort_index.entry(key.to_string()).or_default();
         sort_index.retain(|token| *token != id);
@@ -89,63 +125,92 @@ impl Ledger {
     }
 
     pub fn index_event(&mut self, event: Event) -> Result<(), &'static str> {
-        /*
-        details:
-            - token id: string
-            - nft_canister_id: principal
-            - price: opt nat
-            - buyer: opt principal
-            - seller: opt principal
-        */
-        let mut token = self.token_cache.entry(event.token_id.clone()).or_default();
+        let mut token = self.db.entry(event.token_id.clone()).or_default();
+        let time = time();
 
         match event.operation.as_str() {
-            // load new metadata into canister
             "mint" => {
+                // load new metadata into canister
+
                 // if let Some(traits) = event.traits.clone() {
                 //     for (_k, _v) in traits.clone() {
                 //         // TODO: insert to trait map
                 //     }
                 // }
-
+                token.id = event.token_id.clone();
                 token.traits = event.traits.clone();
-                // TODO: grab metadata from nft contract, insert to trait filter map
             }
 
-            // update indexes
             "makeListing" => {
-                // TODO: price index
-
+                // update db entry
                 token.price = event.price;
+                token.last_listing = Some(time.into());
 
-                self.push("last_listing", event.token_id.clone());
+                // index listing price
+                self.push_sort_listing(event.token_id.clone());
+                // update last listing index
+                self.shift_or_push("last_listing", event.token_id.clone());
             }
             "cancelListing" => {
+                // update db entry
                 token.price = None;
 
-                // TODO: price index
+                // remove from listing index
+                self.remove("listing_price", event.token_id.clone());
+                // remove from last listing index
                 self.remove("last_listing", event.token_id.clone());
             }
 
             "makeOffer" => {
+                // update db entry
+                token.last_offer = Some(time.into());
+                token.best_offer = event.price;
+                // match event.buyer {
+                //     Some(buyer) => {
+                //         let offer = token.offers.entry(buyer.clone()).or_default();
+                //     }
+                // }
+
                 // TODO: offer price index
-                self.push("last_offer", event.token_id.clone());
+                self.shift_or_push("last_offer", event.token_id.clone());
             }
             "cancelOffer" => {
+                // TODO:
+                // remove from last offer index and offer price index if its the only one left (cancelled only offer)
+                // If not, leave it in the index, and re-sort the offer price index (cancelled offer but others remain)
+
                 self.remove("last_offer", event.token_id.clone());
             }
 
             "directBuy" => {
-                self.push("last_sale", event.token_id.clone());
+                // update db entry
+                token.price = None;
+                token.last_sale = Some(time.into());
+
+                // TODO: mirror offer removal logic if one exists for the buyer
+
+                // remove from listing index
+                self.remove("listing_price", event.token_id.clone());
+                // update last sale index
+                self.shift_or_push("last_sale", event.token_id.clone());
             }
             "acceptOffer" => {
-                self.push("last_sale", event.token_id.clone());
+                // update db entry
+                token.price = None;
+                token.last_sale = Some(time.into());
+
+                // TODO: mirror offer removal logic
+
+                // remove from listing index
+                self.remove("listing_price", event.token_id.clone());
+                // update last sale index
+                self.shift_or_push("last_sale", event.token_id.clone());
             }
             _ => {
                 return Err("invalid operation");
             }
         }
-        self.push("all", event.token_id.clone());
+        self.shift_or_push("all", event.token_id.clone());
 
         Ok(())
     }

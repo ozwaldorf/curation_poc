@@ -24,8 +24,16 @@ type GenericValue = variant {
   Principal : principal;
   TextContent : text;
 };
-type QueryResponse = record { data : vec text; items : nat64 };
+type QueryResponse = record { total : nat64; data : vec TokenData };
 type Result = variant { Ok; Err : text };
+type TokenData = record {
+  traits : opt vec record { text; GenericValue };
+  best_offer : opt nat;
+  last_sale : opt nat;
+  last_offer : opt nat;
+  price : opt nat;
+  last_listing : opt nat;
+};
 service : (opt principal) -> {
   insert : (Event) -> (Result);
   "query" : (text, nat64) -> (QueryResponse);
