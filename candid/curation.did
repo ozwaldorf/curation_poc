@@ -1,6 +1,11 @@
 type Event = record {
+  token_id : text;
+  traits : opt vec record { text; GenericValue };
+  seller : opt principal;
   operation : text;
-  details : vec record { text; GenericValue };
+  buyer : opt principal;
+  price : opt nat;
+  nft_canister_id : principal;
 };
 type GenericValue = variant {
   Nat64Content : nat64;
@@ -19,9 +24,9 @@ type GenericValue = variant {
   Principal : principal;
   TextContent : text;
 };
+type QueryResponse = record { data : vec text; items : nat64 };
 type Result = variant { Ok; Err : text };
-type Result_1 = variant { Ok : vec text; Err : text };
 service : (opt principal) -> {
-  insert : (text, Event) -> (Result);
-  "query" : (text, opt nat64) -> (Result_1);
+  insert : (Event) -> (Result);
+  "query" : (text, nat64) -> (QueryResponse);
 }

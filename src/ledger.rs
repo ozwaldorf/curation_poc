@@ -24,10 +24,23 @@ pub enum GenericValue {
     NestedContent(Vec<(String, GenericValue)>),
 }
 
+#[derive(CandidType, Clone, Deserialize, Debug)]
+pub struct Event {
+    pub nft_canister_id: Principal,
+    pub token_id: String,
+    pub operation: String,
+
+    pub traits: Option<HashMap<String, GenericValue>>,
+    pub price: Option<Nat>,
+    pub buyer: Option<Principal>,
+    pub seller: Option<Principal>,
+}
+
 pub type SortIndex = HashMap<String, Vec<String>>;
 
+#[derive(Default)]
 pub struct TokenData {
-    pub properties: HashMap<String, GenericValue>,
+    pub traits: Option<HashMap<String, GenericValue>>,
     // pub events: Vec<Event>, // do we want to store txn history at all??
     pub price: Option<Nat>,
     pub best_offer: Option<Nat>,
@@ -35,6 +48,7 @@ pub struct TokenData {
     pub last_offer: Option<Nat>,
     pub last_sale: Option<Nat>,
 }
+
 pub type TokenCache = HashMap<String, TokenData>;
 
 pub struct Ledger {
@@ -74,7 +88,7 @@ impl Ledger {
         sort_index.retain(|token| *token != id);
     }
 
-    pub fn insert_and_index(&mut self, token_id: String, event: Event) -> Result<(), &'static str> {
+    pub fn index_event(&mut self, event: Event) -> Result<(), &'static str> {
         /*
         details:
             - token id: string
@@ -83,9 +97,18 @@ impl Ledger {
             - buyer: opt principal
             - seller: opt principal
         */
+        let mut token = self.token_cache.entry(event.token_id.clone()).or_default();
+
         match event.operation.as_str() {
             // load new metadata into canister
             "mint" => {
+                // if let Some(traits) = event.traits.clone() {
+                //     for (_k, _v) in traits.clone() {
+                //         // TODO: insert to trait map
+                //     }
+                // }
+
+                token.traits = event.traits.clone();
                 // TODO: grab metadata from nft contract, insert to trait filter map
             }
 
@@ -93,32 +116,36 @@ impl Ledger {
             "makeListing" => {
                 // TODO: price index
 
-                self.push("last_listing", token_id.clone());
+                token.price = event.price;
+
+                self.push("last_listing", event.token_id.clone());
             }
             "cancelListing" => {
+                token.price = None;
+
                 // TODO: price index
-                self.remove("last_listing", token_id.clone());
+                self.remove("last_listing", event.token_id.clone());
             }
 
             "makeOffer" => {
                 // TODO: offer price index
-                self.push("last_offer", token_id.clone());
+                self.push("last_offer", event.token_id.clone());
             }
             "cancelOffer" => {
-                self.remove("last_offer", token_id.clone());
+                self.remove("last_offer", event.token_id.clone());
             }
 
             "directBuy" => {
-                self.push("last_sale", token_id.clone());
+                self.push("last_sale", event.token_id.clone());
             }
             "acceptOffer" => {
-                self.push("last_sale", token_id.clone());
+                self.push("last_sale", event.token_id.clone());
             }
             _ => {
                 return Err("invalid operation");
             }
         }
-        self.push("all", token_id.clone());
+        self.push("all", event.token_id.clone());
 
         Ok(())
     }

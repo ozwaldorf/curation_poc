@@ -1,27 +1,21 @@
-use candid::{candid_method, export_service, CandidType, Deserialize, Principal};
+use std::vec;
+
+use candid::{candid_method, export_service, CandidType, Principal};
 use ic_cdk::caller;
 use ic_cdk_macros::*;
-use std::collections::HashMap;
 
 mod ledger;
 // mod proxy;
 
-/* UPDATE METHODS */
-
-#[derive(CandidType, Clone, Deserialize, Debug)]
-pub struct Event {
-    pub operation: String,
-    pub details: HashMap<String, ledger::GenericValue>,
-}
-
-// insert token transaction
-#[update]
-#[candid_method(update)]
-fn insert(token_id: String, event: Event) -> Result<(), &'static str> {
-    ledger::with_mut(|ledger| ledger.insert_and_index(token_id, event))
-}
+const PAGE_SIZE: usize = 10;
 
 /* QUERY METHODS */
+
+#[derive(Clone, Debug, CandidType)]
+pub struct QueryResponse {
+    data: Vec<String>,
+    items: usize,
+}
 
 /// query sorted indexes.
 ///
@@ -34,30 +28,58 @@ fn insert(token_id: String, event: Event) -> Result<(), &'static str> {
 /// * `page` - page number. If `null`, returns the last (most recent) page of results. Order is backwards
 #[query]
 #[candid_method]
-fn query(sort_key: String, page: Option<usize>) -> Result<Vec<String>, &'static str> {
+fn query(sort_key: String, page: usize) -> QueryResponse {
     ledger::with(|ledger| {
-        let size = 64 as usize;
+        let mut result = vec![];
+
         let indexes = &ledger.sort_index;
         match indexes.get(&sort_key) {
-            None => Err("invalid sort key"),
+            None => QueryResponse {
+                data: result,
+                items: 0,
+            },
             Some(sorted) => {
                 let max_len = sorted.len();
-                let page = page.unwrap_or(max_len / size);
 
-                let start = page * size;
-                if start > max_len {
-                    return Ok(vec![]); // return early if requesting data past whats available
+                let end = max_len - (PAGE_SIZE * page);
+                if end > max_len {
+                    // out of bounds
+                    return QueryResponse {
+                        data: result,
+                        items: max_len,
+                    };
                 }
 
-                let mut end = start + size;
-                if max_len < end {
-                    end = max_len
+                let start;
+                if end < PAGE_SIZE {
+                    // out of bounds
+                    start = 0;
+                } else {
+                    start = end - PAGE_SIZE;
                 }
 
-                Ok(sorted[start..end].to_vec())
+                let mut index = end;
+                while index > start && index != 0 {
+                    index -= 1;
+                    result.push(sorted[index].clone());
+                }
+
+                QueryResponse {
+                    data: result,
+                    items: max_len,
+                }
             }
         }
     })
+}
+
+/* UPDATE METHODS */
+
+/// insert token transaction
+#[update]
+#[candid_method(update)]
+fn insert(event: ledger::Event) -> Result<(), &'static str> {
+    ledger::with_mut(|ledger| ledger.index_event(event))
 }
 
 /* CANISTER METHODS */
