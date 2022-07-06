@@ -27,6 +27,7 @@ type GenericValue = variant {
 type QueryResponse = record { total : nat64; data : vec TokenData };
 type Result = variant { Ok; Err : text };
 type TokenData = record {
+  id : text;
   traits : opt vec record { text; GenericValue };
   best_offer : opt nat;
   last_sale : opt nat;
