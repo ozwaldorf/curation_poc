@@ -1,20 +1,36 @@
-# curator canister (combined proxy/indexer)
+# curation canister (combined proxy/indexer)
+
+![Curation and indexing flow](https://upld.is/QmaWQtL5TksCZgK5Dgm1EhUPZnhiXygKTRQm8zMeVLWxYV/curation_flow.png)
+
+## Tasks
+
+- [x] basic implementation that indexes tokens by most recent actions
+- [x] basic query method for token id results
+- [x] index price and best offer
+- [x] build an internal db of token data, and respond with the full data instead of key names
+- [ ] built trait index
+
+## Trait filter index
+
+- [ ] maybe store db state hash - btree map ?
+- [ ] cache responses for state hash - avoid recalculation during pagination
+  - do we need to store last index for previous page state to "resume" filtering ?
+  - previous page cache doesnt exist, index up to requested page and cache
+
+## Curation canister
 
 - users can make a jelly transaction request to either the main canister, or to the curation canister.
   - Curation canister -> proxy request to main jelly, and index transaction if successful
   - Jelly canister -> transaction is processed and pushed to the curation canister for indexing
 - proxy collects fee if any successful jelly transaction came from the proxy, which the fee is released at time of sale.
+
   - Maybe can split the protocol fee from jelly? 0.5% each?
-- possibly could let each collection maintain their own ?
 
-![Curation and indexing flow](https://upld.is/QmaWQtL5TksCZgK5Dgm1EhUPZnhiXygKTRQm8zMeVLWxYV/curation_flow.png)
-
-## Curation canister
-
-- stores 2 types, filter maps and trait lists
-- provides nft index interface, and jelly proxy interface
+- stores 2 types, filter maps and sorted vectors
 
 ### Interface
+
+- provides nft index interface, and jelly proxy interface
 
 #### Indexer
 

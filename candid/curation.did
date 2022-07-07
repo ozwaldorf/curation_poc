@@ -24,11 +24,18 @@ type GenericValue = variant {
   Principal : principal;
   TextContent : text;
 };
+type Offer = record { fungible : principal; buyer : principal; price : nat };
+type QueryRequest = record {
+  page : nat64;
+  sort_key : text;
+  reverse_order : opt bool;
+};
 type QueryResponse = record { total : nat64; data : vec TokenData };
 type Result = variant { Ok; Err : text };
 type TokenData = record {
   id : text;
   traits : opt vec record { text; GenericValue };
+  offers : vec Offer;
   best_offer : opt nat;
   last_sale : opt nat;
   last_offer : opt nat;
@@ -37,5 +44,5 @@ type TokenData = record {
 };
 service : (opt principal) -> {
   insert : (Event) -> (Result);
-  "query" : (text, nat64) -> (QueryResponse);
+  "query" : (QueryRequest) -> (QueryResponse);
 }

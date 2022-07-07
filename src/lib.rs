@@ -1,6 +1,6 @@
 use std::vec;
 
-use candid::{candid_method, export_service, CandidType, Principal};
+use candid::{candid_method, export_service, CandidType, Deserialize, Principal};
 use ic_cdk::caller;
 use ic_cdk_macros::*;
 use ledger::TokenData;
@@ -12,15 +12,7 @@ const PAGE_SIZE: usize = 10;
 
 /* QUERY METHODS */
 
-#[derive(Clone, Debug, CandidType)]
-pub struct QueryResponse {
-    total: usize,
-    data: Vec<TokenData>,
-}
-
-/// query sorted indexes.
-///
-/// # Arguments
+/// QueryRequest
 /// * `sort_key` - sort key. Possible options include:
 ///   - `listing_price` - listing price.
 ///   - `offer_price` - offer price.
@@ -29,14 +21,33 @@ pub struct QueryResponse {
 ///   - `last_sale` - recently sold tokens.
 ///   - `all` - all indexed tokens.
 /// * `page` - page number. If `null`, returns the last (most recent) page of results. Order is backwards
+/// * `reverse_order` - if `true`, returns results in ascending order. If `null` or `false`, returns results in descending order
+
+#[derive(CandidType, Clone, Deserialize)]
+pub struct QueryRequest {
+    sort_key: String,
+    page: usize,
+    reverse_order: Option<bool>,
+}
+
+#[derive(CandidType, Clone, Debug)]
+pub struct QueryResponse {
+    total: usize,
+    data: Vec<TokenData>,
+}
+
+/// query sorted indexes.
+///
+/// # Arguments
+/// * `request` - query request.
 #[query]
 #[candid_method]
-fn query(sort_key: String, page: usize) -> QueryResponse {
+fn query(request: QueryRequest) -> QueryResponse {
     ledger::with(|ledger| {
         let mut result = vec![];
 
         let indexes = &ledger.sort_index;
-        match indexes.get(&sort_key) {
+        match indexes.get(&request.sort_key) {
             // if sort key is not found, return empty result
             None => QueryResponse {
                 total: 0,
@@ -45,36 +56,76 @@ fn query(sort_key: String, page: usize) -> QueryResponse {
             Some(sorted) => {
                 let max_len = sorted.len();
 
-                let end = max_len - (PAGE_SIZE * page);
-                if end > max_len {
-                    // out of bounds, return nothing!
-                    return QueryResponse {
-                        total: max_len,
-                        data: result,
-                    };
-                }
+                match request.reverse_order.unwrap_or(false) {
+                    false => {
+                        // descending order
 
-                let start;
-                if end < PAGE_SIZE {
-                    // out of bounds, go as far as we can!
-                    start = 0;
-                } else {
-                    start = end - PAGE_SIZE;
-                }
+                        let end = max_len - (PAGE_SIZE * request.page);
+                        if end > max_len {
+                            // out of bounds, return nothing!
+                            return QueryResponse {
+                                total: max_len,
+                                data: result,
+                            };
+                        }
 
-                let mut index = end;
-                while index > start && index != 0 {
-                    index -= 1;
+                        let start;
+                        if end < PAGE_SIZE {
+                            // out of bounds, go as far as we can!
+                            start = 0;
+                        } else {
+                            start = end - PAGE_SIZE;
+                        }
 
-                    match ledger.db.get(&sorted[index].to_string()) {
-                        Some(token) => result.push(token.clone()),
-                        None => (),
+                        let mut index = end;
+                        while index > start && index != 0 {
+                            index -= 1;
+
+                            match ledger.db.get(&sorted[index].to_string()) {
+                                Some(token) => result.push(token.clone()),
+                                None => (),
+                            }
+                        }
+
+                        QueryResponse {
+                            total: max_len,
+                            data: result,
+                        }
                     }
-                }
+                    true => {
+                        // ascending order
 
-                QueryResponse {
-                    total: max_len,
-                    data: result,
+                        let start = PAGE_SIZE * request.page;
+                        if start > max_len {
+                            // out of bounds, return nothing!
+                            return QueryResponse {
+                                total: max_len,
+                                data: result,
+                            };
+                        }
+
+                        let end;
+                        if start + PAGE_SIZE > max_len {
+                            // out of bounds, go as far as we can!
+                            end = max_len;
+                        } else {
+                            end = start + PAGE_SIZE;
+                        }
+
+                        let mut index = start;
+                        while index < end {
+                            match ledger.db.get(&sorted[index].to_string()) {
+                                Some(token) => result.push(token.clone()),
+                                None => (),
+                            }
+                            index += 1;
+                        }
+
+                        QueryResponse {
+                            total: max_len,
+                            data: result,
+                        }
+                    }
                 }
             }
         }

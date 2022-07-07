@@ -1,13 +1,19 @@
+#!/bin/bash
+
+# Setup the environment
+traits=("Bronze" "Silver" "Gold" "Platinum" "Diamond")
+prices=(1 2 3 5 8 13 21 34 55 89 144) # lets get fibby!
+nft_canister_id="aaaaa-aa"
+user_a="ffuck-kxghi-gyvia-r5htr-246cy-acq5u-2tdgd-avtvf-jyqbt-xtmf7-cae"
+user_b="3crrz-quea6-mdmy3-3btit-f2mgf-esqo6-ybiz7-i6s4z-xrf7g-izcxw-zae"
+
 echo "-> Checking local replica..."
 dfx ping || dfx start --clean --background
 
 echo "-> Deploying curation canister..."
 dfx deploy curation --argument '(null)'
 
-# Random traits
-traits=("Bronze" "Silver" "Gold" "Platinum" "Diamond")
-prices=(1 2 3 5 8 13 21 34 55 89 144) # lets get fibby!
-nft_canister_id="aaaaa-aa"
+
 
 echo "-> insert 'mint' events (tokens 0-14)..."
 for i in {0..14}; do
@@ -73,7 +79,7 @@ for i in {2..4}; do
       token_id=\"$i\";
       operation=\"makeOffer\";
       buyer=opt principal\"$nft_canister_id\";
-      price=opt($i);
+      price=opt($price);
     }
   )"
 done
