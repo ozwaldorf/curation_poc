@@ -51,6 +51,7 @@ pub struct TokenData {
     // pub events: Vec<Event>, // do we want to store txn history at all??
     pub offers: Vec<Offer>,
     pub price: Option<Nat>,
+    pub sale: Option<Nat>,
     pub best_offer: Option<Nat>,
     pub last_listing: Option<Nat>,
     pub last_offer: Option<Nat>,
@@ -62,8 +63,11 @@ pub type Index = HashMap<String, Vec<String>>;
 pub struct Ledger {
     pub nft_canister_id: Principal,
     pub custodians: Vec<Principal>,
+    // pre-sorted indexes
     pub sort_index: Index,
+    // filter items: index
     pub filter_maps: HashMap<String, Index>,
+    // token id: token data
     pub db: HashMap<String, TokenData>,
 }
 
@@ -76,6 +80,7 @@ impl Ledger {
             sort_index: HashMap::from([
                 ("listing_price".to_string(), vec![]),
                 ("offer_price".to_string(), vec![]),
+                ("sale_price".to_string(), vec![]),
                 ("last_listing".to_string(), vec![]),
                 ("last_offer".to_string(), vec![]),
                 ("last_sale".to_string(), vec![]),
@@ -86,38 +91,97 @@ impl Ledger {
         }
     }
 
-    fn push_sort_listing(&mut self, token_id: String) {
+    fn push_sort_sale(&mut self, token_id: String, price: Nat) {
+        let sorted = self.sort_index.get_mut("sale_price").unwrap();
+        let mut db = self.db.clone();
+
+        // check if key exists already
+        if !sorted.contains(&token_id) {
+            // key exists, just sort the array
+            // improvement: use dmsort which is extremely efficient at mostly sorted arrays
+            sorted.push(token_id);
+            sorted.sort_by_cached_key(|id| {
+                db.entry(id.to_string())
+                    .or_default()
+                    .price
+                    .clone()
+                    .unwrap_or_default()
+            });
+        } else {
+            // not found, partition insert into sorted array
+            let index = sorted.partition_point(|id| {
+                db.entry(id.clone())
+                    .or_default()
+                    .price
+                    .clone()
+                    .unwrap_or_default()
+                    < price
+            });
+
+            sorted.insert(index, token_id.clone());
+        }
+    }
+
+    fn push_sort_listing(&mut self, token_id: String, amount: Nat) {
         let sorted = self.sort_index.get_mut("listing_price").unwrap();
         let mut db = self.db.clone();
 
         // check if key exists already
         if !sorted.contains(&token_id) {
+            // key exists, just sort the array
+            // improvement: use dmsort which is extremely efficient at mostly sorted arrays
             sorted.push(token_id);
-        }
+            sorted.sort_by_cached_key(|id| {
+                db.entry(id.to_string())
+                    .or_default()
+                    .price
+                    .clone()
+                    .unwrap_or_default()
+            });
+        } else {
+            // not found, partition insert into sorted array
+            let index = sorted.partition_point(|id| {
+                db.entry(id.clone())
+                    .or_default()
+                    .price
+                    .clone()
+                    .unwrap_or_default()
+                    < amount
+            });
 
-        sorted.sort_by_cached_key(
-            |id| match db.entry(id.to_string()).or_default().price.clone() {
-                Some(price) => price,
-                None => Nat::from(0),
-            },
-        );
+            sorted.insert(index, token_id.clone());
+        }
     }
 
-    fn push_sort_offer(&mut self, token_id: String) {
+    fn push_sort_offer(&mut self, token_id: String, amount: Nat) {
         let sorted = self.sort_index.get_mut("offer_price").unwrap();
         let mut db = self.db.clone();
 
         // check if key exists already
         if !sorted.contains(&token_id) {
-            sorted.push(token_id);
-        }
+            // key exists, just sort the array
+            // improvement: use dmsort which is extremely efficient at mostly sorted arrays
+            sorted.sort_by_cached_key(|id| {
+                db.entry(id.to_string())
+                    .or_default()
+                    .price
+                    .clone()
+                    .unwrap_or_default()
+            });
+        } else {
+            // not found, partition insert into sorted array
+            let index = sorted.partition_point(|id| {
+                // research: should we use an Option here? would it be optimized for the null value to be 0 ?
+                db.entry(id.clone())
+                    .or_default()
+                    .best_offer
+                    .clone()
+                    .unwrap_or_default()
+                    < amount
+            });
 
-        sorted.sort_by_cached_key(|id| {
-            match db.entry(id.to_string()).or_default().best_offer.clone() {
-                Some(price) => price,
-                None => Nat::from(0),
-            }
-        });
+            sorted.insert(index, token_id.clone());
+        }
     }
 
     fn shift_or_push(&mut self, key: &str, id: String) {
@@ -152,11 +216,13 @@ impl Ledger {
 
             "makeListing" => {
                 // update db entry
-                token.price = event.price;
+                token.price = event.price.clone();
                 token.last_listing = Some(time.into());
 
+                let price = event.price.unwrap_or(Nat::from(0));
+
                 // index listing price
-                self.push_sort_listing(event.token_id.clone());
+                self.push_sort_listing(event.token_id.clone(), price);
                 // update last listing index
                 self.shift_or_push("last_listing", event.token_id.clone());
             }
@@ -174,15 +240,16 @@ impl Ledger {
                 // update db entry
                 token.last_offer = Some(time.into());
                 token.best_offer = event.price.clone();
+                let price = event.price.unwrap_or(Nat::from(0));
 
                 token.offers.push(Offer {
                     buyer: event.buyer.unwrap_or(Principal::management_canister()),
                     fungible: event.nft_canister_id.clone(),
-                    price: event.price.unwrap_or(Nat::from(0)),
+                    price: price.clone(),
                 });
 
                 // index offer price
-                self.push_sort_offer(event.token_id.clone());
+                self.push_sort_offer(event.token_id.clone(), price);
 
                 // TODO: offer price index
                 self.shift_or_push("last_offer", event.token_id.clone());
@@ -230,10 +297,10 @@ impl Ledger {
                     }
 
                     // update best offer
-                    token.best_offer = best_offer;
+                    token.best_offer = best_offer.clone();
 
                     // sort offer price index
-                    self.push_sort_offer(event.token_id.clone());
+                    self.push_sort_offer(event.token_id.clone(), best_offer.unwrap());
                 }
             }
 
@@ -244,49 +311,53 @@ impl Ledger {
 
                 match event.buyer {
                     Some(buyer) => {
-                        token.offers.retain(|o| o.buyer != buyer);
+                        if !token.offers.is_empty() {
+                            token.offers.retain(|o| o.buyer != buyer);
 
-                        match &token.best_offer {
-                            Some(best_offer) => match token.offers.last() {
-                                Some(offer) => {
-                                    if offer.price.clone() > best_offer.clone() {
-                                        token.best_offer = Some(offer.price.clone());
+                            match &token.best_offer {
+                                Some(best_offer) => match token.offers.last() {
+                                    Some(offer) => {
+                                        if offer.price.clone() > best_offer.clone() {
+                                            token.best_offer = Some(offer.price.clone());
+                                        }
+                                    }
+                                    None => {
+                                        token.best_offer = None;
+                                    }
+                                },
+                                None => unreachable!(),
+                            }
+
+                            if token.offers.is_empty() {
+                                // remove from last offer and offer price indexes if no more offers on the token
+                                self.remove("last_offer", event.token_id.clone());
+                                self.remove("offer_price", event.token_id.clone());
+                            } else {
+                                // re-sort offer price index
+
+                                // find best offer
+                                let mut best_offer = None;
+                                for offer in token.offers.iter() {
+                                    if best_offer.is_none() {
+                                        best_offer = Some(offer.price.clone());
+                                    } else if offer.price.clone() > best_offer.clone().unwrap() {
+                                        best_offer = Some(offer.price.clone());
                                     }
                                 }
-                                None => {
-                                    token.best_offer = None;
-                                }
-                            },
-                            None => unreachable!(),
+
+                                // update best offer
+                                token.best_offer = best_offer.clone();
+
+                                // sort offer price index
+                                self.push_sort_offer(event.token_id.clone(), best_offer.unwrap());
+                            }
                         }
                     }
                     None => {}
                 }
 
-                if token.offers.is_empty() {
-                    // remove from last offer and offer price indexes if no more offers on the token
-                    self.remove("last_offer", event.token_id.clone());
-                    self.remove("offer_price", event.token_id.clone());
-                } else {
-                    // re-sort offer price index
-
-                    // find best offer
-                    let mut best_offer = None;
-                    for offer in token.offers.iter() {
-                        if best_offer.is_none() {
-                            best_offer = Some(offer.price.clone());
-                        } else if offer.price.clone() > best_offer.clone().unwrap() {
-                            best_offer = Some(offer.price.clone());
-                        }
-                    }
-
-                    // update best offer
-                    token.best_offer = best_offer;
-
-                    // sort offer price index
-                    self.push_sort_offer(event.token_id.clone());
-                }
-
+                // update sale price index
+                self.push_sort_sale(event.token_id.clone(), event.price.unwrap());
                 // remove from listing index
                 self.remove("listing_price", event.token_id.clone());
                 // update last sale index
@@ -315,35 +386,37 @@ impl Ledger {
                             },
                             None => unreachable!(),
                         }
+
+                        if token.offers.is_empty() {
+                            // remove from last offer and offer price indexes if no more offers on the token
+                            self.remove("last_offer", event.token_id.clone());
+                            self.remove("offer_price", event.token_id.clone());
+                        } else {
+                            // re-sort offer price index
+
+                            // find best offer
+                            let mut best_offer = None;
+                            for offer in token.offers.iter() {
+                                if best_offer.is_none() {
+                                    best_offer = Some(offer.price.clone());
+                                } else if offer.price.clone() > best_offer.clone().unwrap() {
+                                    best_offer = Some(offer.price.clone());
+                                }
+                            }
+
+                            // update best offer
+                            token.best_offer = best_offer.clone();
+
+                            // sort offer price index
+                            self.push_sort_offer(event.token_id.clone(), best_offer.unwrap());
+                        }
                     }
                     None => {}
                 }
 
-                if token.offers.is_empty() {
-                    // remove from last offer and offer price indexes if no more offers on the token
-                    self.remove("last_offer", event.token_id.clone());
-                    self.remove("offer_price", event.token_id.clone());
-                } else {
-                    // re-sort offer price index
-
-                    // find best offer
-                    let mut best_offer = None;
-                    for offer in token.offers.iter() {
-                        if best_offer.is_none() {
-                            best_offer = Some(offer.price.clone());
-                        } else if offer.price.clone() > best_offer.clone().unwrap() {
-                            best_offer = Some(offer.price.clone());
-                        }
-                    }
-
-                    // update best offer
-                    token.best_offer = best_offer;
-
-                    // sort offer price index
-                    self.push_sort_offer(event.token_id.clone());
-                }
-
-                // remove from listing index
+                // update sale price index
+                self.push_sort_sale(event.token_id.clone(), event.price.unwrap());
+                // remove from listing price index
                 self.remove("listing_price", event.token_id.clone());
                 // update last sale index
                 self.shift_or_push("last_sale", event.token_id.clone());

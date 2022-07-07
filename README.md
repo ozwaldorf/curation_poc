@@ -6,8 +6,13 @@
 
 - [x] basic implementation that indexes tokens by most recent actions
 - [x] basic query method for token id results
+
 - [x] index price and best offer
 - [x] build an internal db of token data, and respond with the full data instead of key names
+
+- [x] sale price index
+- [x] ascending/descending option
+- [x] request type def - predecessor for trait filters
 - [ ] built trait index
 
 ## Trait filter index

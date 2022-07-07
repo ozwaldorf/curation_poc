@@ -17,6 +17,7 @@ const PAGE_SIZE_LIMIT: usize = 64;
 /// * `sort_key` - sort key. Possible options include:
 ///   - `listing_price` - listing price.
 ///   - `offer_price` - offer price.
+///   - `sale_price` - last sale price
 ///   - `last_listing` - recently listed tokens.
 ///   - `last_offer` - recently modified tokens.
 ///   - `last_sale` - recently sold tokens.

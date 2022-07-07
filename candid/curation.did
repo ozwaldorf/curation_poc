@@ -40,6 +40,7 @@ type Result = variant { Ok; Err : text };
 type TokenData = record {
   id : text;
   traits : opt vec record { text; GenericValue };
+  sale : opt nat;
   offers : vec Offer;
   best_offer : opt nat;
   last_sale : opt nat;
