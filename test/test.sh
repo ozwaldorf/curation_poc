@@ -83,7 +83,7 @@ dfx canister call curation query "(
 
 
 
-echo "-> insert 'makeOffer' events (tokens 2-4)"
+echo "-> insert 'makeOffer' events (tokens 1-3)"
 for i in {2..4}; do
   price=${prices[$((RANDOM % ${#prices[@]}))]}
   echo "make offer for token $i (price: $price)"
@@ -93,7 +93,7 @@ for i in {2..4}; do
       nft_canister_id=principal\"$nft_canister_id\";
       token_id=\"$i\";
       operation=\"makeOffer\";
-      buyer=opt principal\"$nft_canister_id\";
+      buyer=opt principal\"$user_a\";
       price=opt($price);
     }
   )"
@@ -122,7 +122,7 @@ dfx canister call curation insert "(
     nft_canister_id=principal\"$nft_canister_id\";
     token_id=\"2\";
     operation=\"cancelOffer\";
-    buyer=opt principal\"$nft_canister_id\";
+    buyer=opt principal\"$user_a\";
   }
 )"
 
@@ -149,7 +149,7 @@ dfx canister call curation insert "(
     nft_canister_id=principal\"$nft_canister_id\";
     token_id=\"3\";
     operation=\"makeOffer\";
-    buyer=opt principal\"$nft_canister_id\";
+    buyer=opt principal\"$user_a\";
     price=opt(200);
   }
 )"
@@ -169,6 +169,47 @@ dfx canister call curation query "(
   }
 )"
 
+
+
+price=${prices[$((RANDOM % ${#prices[@]}))]}
+echo "-> directBuy for token 3 (price: $price)"
+dfx canister call curation insert "(
+  record {
+    nft_canister_id=principal\"$nft_canister_id\";
+    token_id=\"3\";
+    operation=\"directBuy\";
+    buyer=opt principal\"$user_a\";
+    price=opt($price);
+  }
+)"
+
+price=${prices[$((RANDOM % ${#prices[@]}))]}
+echo "-> acceptOffer for token 2 (price: $price)"
+dfx canister call curation insert "(
+  record {
+    nft_canister_id=principal\"$nft_canister_id\";
+    token_id=\"1\";
+    operation=\"acceptOffer\";
+    buyer=opt principal\"$user_a\";
+    price=opt($price);
+  }
+)"
+
+
+echo "-> query for tokens by 'last_sale' (page 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"last_sale\";
+    page=0;
+  }
+)"
+echo "-> query for tokens by 'sale_price' (page 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"sale_price\";
+    page=0;
+  }
+)"
 
 
 echo "-> query for all tokens"

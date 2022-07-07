@@ -28,6 +28,7 @@ pub enum GenericValue {
 #[derive(CandidType, Clone, Deserialize, Debug)]
 pub struct Event {
     pub nft_canister_id: Principal,
+    pub fungible_id: Option<Principal>,
     pub token_id: String,
     pub operation: String,
 
@@ -43,19 +44,26 @@ pub struct Offer {
     pub fungible: Principal,
     pub price: Nat,
 }
+#[derive(CandidType, Clone, Deserialize, Debug)]
+pub struct Sale {
+    pub buyer: Principal,
+    pub fungible: Principal,
+    pub price: Nat,
+    pub time: Nat,
+}
 
 #[derive(Default, Clone, Deserialize, Debug, CandidType)]
 pub struct TokenData {
     pub id: String,
     pub traits: Option<HashMap<String, GenericValue>>,
-    // pub events: Vec<Event>, // do we want to store txn history at all??
+
     pub offers: Vec<Offer>,
-    pub price: Option<Nat>,
-    pub sale: Option<Nat>,
     pub best_offer: Option<Nat>,
+    pub price: Option<Nat>,
+    pub last_sale: Option<Sale>,
+
     pub last_listing: Option<Nat>,
     pub last_offer: Option<Nat>,
-    pub last_sale: Option<Nat>,
 }
 
 pub type Index = HashMap<String, Vec<String>>;
@@ -101,11 +109,10 @@ impl Ledger {
             // improvement: use dmsort which is extremely efficient at mostly sorted arrays
             sorted.push(token_id);
             sorted.sort_by_cached_key(|id| {
-                db.entry(id.to_string())
-                    .or_default()
-                    .price
-                    .clone()
-                    .unwrap_or_default()
+                match db.entry(id.to_string()).or_default().sale.clone() {
+                    Some(sale) => sale.price,
+                    None => 0.into(),
+                }
             });
         } else {
             // not found, partition insert into sorted array
@@ -243,8 +250,10 @@ impl Ledger {
                 let price = event.price.unwrap_or(Nat::from(0));
 
                 token.offers.push(Offer {
-                    buyer: event.buyer.unwrap_or(Principal::management_canister()),
-                    fungible: event.nft_canister_id.clone(),
+                    buyer: event.buyer.unwrap_or(Principal::anonymous()),
+                    fungible: event
+                        .fungible_id
+                        .unwrap_or(Principal::management_canister()),
                     price: price.clone(),
                 });
 
@@ -306,8 +315,15 @@ impl Ledger {
 
             "directBuy" => {
                 // update db entry
+                token.last_sale = Some(Sale {
+                    buyer: event.buyer.unwrap_or(Principal::anonymous()),
+                    fungible: event
+                        .fungible_id
+                        .unwrap_or(Principal::management_canister()),
+                    price: event.price.clone().unwrap_or_default(),
+                    time: time.into(),
+                });
                 token.price = None;
-                token.last_sale = Some(time.into());
 
                 match event.buyer {
                     Some(buyer) => {
@@ -325,7 +341,7 @@ impl Ledger {
                                         token.best_offer = None;
                                     }
                                 },
-                                None => unreachable!(),
+                                None => {}
                             }
 
                             if token.offers.is_empty() {
@@ -365,8 +381,15 @@ impl Ledger {
             }
             "acceptOffer" => {
                 // update db entry
+                token.last_sale = Some(Sale {
+                    buyer: event.buyer.unwrap_or(Principal::anonymous()),
+                    fungible: event
+                        .fungible_id
+                        .unwrap_or(Principal::management_canister()),
+                    price: event.price.clone().unwrap_or_default(),
+                    time: time.into(),
+                });
                 token.price = None;
-                token.last_sale = Some(time.into());
 
                 // TODO: mirror offer removal logic
                 match event.buyer {
@@ -384,7 +407,7 @@ impl Ledger {
                                     token.best_offer = None;
                                 }
                             },
-                            None => unreachable!(),
+                            None => {}
                         }
 
                         if token.offers.is_empty() {

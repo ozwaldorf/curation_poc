@@ -2,6 +2,7 @@ type Event = record {
   token_id : text;
   traits : opt vec record { text; GenericValue };
   seller : opt principal;
+  fungible_id : opt principal;
   operation : text;
   buyer : opt principal;
   price : opt nat;
@@ -24,7 +25,6 @@ type GenericValue = variant {
   Principal : principal;
   TextContent : text;
 };
-type Offer = record { fungible : principal; buyer : principal; price : nat };
 type QueryRequest = record {
   page : nat64;
   count : opt nat64;
@@ -37,11 +37,12 @@ type QueryResponse = record {
   error : opt text;
 };
 type Result = variant { Ok; Err : text };
+type Sale = record { fungible : principal; buyer : principal; price : nat };
 type TokenData = record {
   id : text;
   traits : opt vec record { text; GenericValue };
-  sale : opt nat;
-  offers : vec Offer;
+  sale : opt Sale;
+  offers : vec Sale;
   best_offer : opt nat;
   last_sale : opt nat;
   last_offer : opt nat;

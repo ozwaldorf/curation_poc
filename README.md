@@ -10,17 +10,13 @@
 - [x] index price and best offer
 - [x] build an internal db of token data, and respond with the full data instead of key names
 
-- [x] sale price index
-- [x] ascending/descending option
 - [x] request type def - predecessor for trait filters
+- [x] ascending/descending option
+- [x] sale price index
+- [x] sale db type
+- [x] handle direct buy and accept offer events properly
+- [x] track fungible id with offers
 - [ ] built trait index
-
-## Trait filter index
-
-- [ ] maybe store db state hash - btree map ?
-- [ ] cache responses for state hash - avoid recalculation during pagination
-  - do we need to store last index for previous page state to "resume" filtering ?
-  - previous page cache doesnt exist, index up to requested page and cache
 
 ## Curation canister
 
@@ -69,7 +65,27 @@
 }
 ```
 
-### Filter maps
+### Trait filters
+
+ideas:
+
+- 1. easy: iterate through sort key until we reach the final desired count
+
+  - build list of token ids for selected traits, just push to a single array
+  - iterate through sort key and only push results that are included in the accepted tokens array
+  - con: inefficient scaling, multi page results require recomputing previous pages
+  - con: would need to scan entire sort key for a total result
+
+- 2. medium: seperate update call `filter_query` that implements #1, but caches the request/last result index to resume filtering to achieve pagination
+
+  - need to store db as a btreemap, to get a root hash
+  - request cache stored for the duration of the dbs hash, any change would wipe cache
+  - request_cache: ([...sorted_traits_request], db_hash) -> last_scanned_index
+
+- 3. hard: precompute sort indexes for each of the tokens traits on insertion
+  - combine precomputed sort indexes for multiple trait selections, need to dedupe
+
+---
 
 - trait map
 
