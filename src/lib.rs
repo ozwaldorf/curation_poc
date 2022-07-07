@@ -8,7 +8,8 @@ use ledger::TokenData;
 mod ledger;
 // mod proxy;
 
-const PAGE_SIZE: usize = 10;
+const DEFAULT_PAGE_SIZE: usize = 10;
+const PAGE_SIZE_LIMIT: usize = 64;
 
 /* QUERY METHODS */
 
@@ -28,12 +29,14 @@ pub struct QueryRequest {
     sort_key: String,
     page: usize,
     reverse_order: Option<bool>,
+    count: Option<usize>,
 }
 
 #[derive(CandidType, Clone, Debug)]
 pub struct QueryResponse {
     total: usize,
     data: Vec<TokenData>,
+    error: Option<String>,
 }
 
 /// query sorted indexes.
@@ -45,6 +48,10 @@ pub struct QueryResponse {
 fn query(request: QueryRequest) -> QueryResponse {
     ledger::with(|ledger| {
         let mut result = vec![];
+        let mut size = request.count.unwrap_or(DEFAULT_PAGE_SIZE);
+        if size > PAGE_SIZE_LIMIT {
+            size = PAGE_SIZE_LIMIT;
+        }
 
         let indexes = &ledger.sort_index;
         match indexes.get(&request.sort_key) {
@@ -52,29 +59,31 @@ fn query(request: QueryRequest) -> QueryResponse {
             None => QueryResponse {
                 total: 0,
                 data: result,
+                error: Some("Sort key not found".to_string()),
             },
             Some(sorted) => {
                 let max_len = sorted.len();
 
                 match request.reverse_order.unwrap_or(false) {
                     false => {
-                        // descending order
+                        // descending order, default
 
-                        let end = max_len - (PAGE_SIZE * request.page);
+                        let end = max_len - (size * request.page);
                         if end > max_len {
                             // out of bounds, return nothing!
                             return QueryResponse {
                                 total: max_len,
                                 data: result,
+                                error: Some("Page out of bounds".to_string()),
                             };
                         }
 
                         let start;
-                        if end < PAGE_SIZE {
+                        if end < size {
                             // out of bounds, go as far as we can!
                             start = 0;
                         } else {
-                            start = end - PAGE_SIZE;
+                            start = end - size;
                         }
 
                         let mut index = end;
@@ -90,26 +99,28 @@ fn query(request: QueryRequest) -> QueryResponse {
                         QueryResponse {
                             total: max_len,
                             data: result,
+                            error: None,
                         }
                     }
                     true => {
                         // ascending order
 
-                        let start = PAGE_SIZE * request.page;
+                        let start = size * request.page;
                         if start > max_len {
                             // out of bounds, return nothing!
                             return QueryResponse {
                                 total: max_len,
                                 data: result,
+                                error: Some("Page out of bounds".to_string()),
                             };
                         }
 
                         let end;
-                        if start + PAGE_SIZE > max_len {
+                        if start + size > max_len {
                             // out of bounds, go as far as we can!
                             end = max_len;
                         } else {
-                            end = start + PAGE_SIZE;
+                            end = start + size;
                         }
 
                         let mut index = start;
@@ -124,6 +135,7 @@ fn query(request: QueryRequest) -> QueryResponse {
                         QueryResponse {
                             total: max_len,
                             data: result,
+                            error: None,
                         }
                     }
                 }

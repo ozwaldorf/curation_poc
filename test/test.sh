@@ -41,7 +41,12 @@ done
 echo "-> query for all tokens"
 for page in {0..1}; do
   printf "  $page: "
-  dfx canister call curation query "(\"all\", $page)"
+  dfx canister call curation query "(
+    record {
+      sort_key=\"all\";
+      page=0;
+    }
+  )"
 done
 
 
@@ -62,9 +67,19 @@ for i in {0..1}; do
 done
 
 echo "-> query for tokens by 'last_listing' (page 0)"
-dfx canister call curation query "(\"last_listing\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"last_listing\";
+    page=0;
+  }
+)"
 echo "-> query for tokens by 'listing_price' (page 0)"
-dfx canister call curation query "(\"listing_price\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"listing_price\";
+    page=0;
+  }
+)"
 
 
 
@@ -85,9 +100,19 @@ for i in {2..4}; do
 done
 
 echo "-> query for tokens by 'last_offer' (page 0)"
-dfx canister call curation query "(\"last_offer\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"last_offer\";
+    page=0;
+  }
+)"
 echo "-> query for tokens by 'offer_price' (page 0)"
-dfx canister call curation query "(\"offer_price\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"offer_price\";
+    page=0;
+  }
+)"
 
 
 
@@ -102,9 +127,19 @@ dfx canister call curation insert "(
 )"
 
 echo "-> query for tokens by 'last_offer' (page 0)"
-dfx canister call curation query "(\"last_offer\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"last_offer\";
+    page=0;
+  }
+)"
 echo "-> query for tokens by 'offer_price' (page 0)"
-dfx canister call curation query "(\"offer_price\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"offer_price\";
+    page=0;
+  }
+)"
 
 
 
@@ -120,14 +155,29 @@ dfx canister call curation insert "(
 )"
 
 echo "-> query for tokens by 'last_offer' (page 0)"
-dfx canister call curation query "(\"last_offer\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"last_offer\";
+    page=0;
+  }
+)"
 echo "-> query for tokens by 'offer_price' (page 0)"
-dfx canister call curation query "(\"offer_price\", 0)"
+dfx canister call curation query "(
+  record {
+    sort_key=\"offer_price\";
+    page=0;
+  }
+)"
 
 
 
 echo "-> query for all tokens"
 for page in {0..0}; do
   printf "  $page: "
-  dfx canister call curation query "(\"all\", $page)"
+  dfx canister call curation query "(
+    record {
+      sort_key=\"all\";
+      page=0;
+    }
+  )"
 done

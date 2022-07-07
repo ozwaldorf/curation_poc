@@ -27,10 +27,15 @@ type GenericValue = variant {
 type Offer = record { fungible : principal; buyer : principal; price : nat };
 type QueryRequest = record {
   page : nat64;
+  count : opt nat64;
   sort_key : text;
   reverse_order : opt bool;
 };
-type QueryResponse = record { total : nat64; data : vec TokenData };
+type QueryResponse = record {
+  total : nat64;
+  data : vec TokenData;
+  error : opt text;
+};
 type Result = variant { Ok; Err : text };
 type TokenData = record {
   id : text;
