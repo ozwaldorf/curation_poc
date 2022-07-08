@@ -1,72 +1,11 @@
-use candid::{CandidType, Deserialize, Nat, Principal};
+use crate::types::*;
+use candid::{Nat, Principal};
 use ic_cdk::api::time;
 use std::{cell::RefCell, collections::HashMap};
 
 thread_local! {
   pub static LEDGER: RefCell<Ledger>  = RefCell::new(Ledger::new());
 }
-
-#[derive(CandidType, Clone, Deserialize, Debug)]
-pub enum GenericValue {
-    BoolContent(bool),
-    TextContent(String),
-    BlobContent(Vec<u8>),
-    Principal(Principal),
-    Nat8Content(u8),
-    Nat16Content(u16),
-    Nat32Content(u32),
-    Nat64Content(u64),
-    NatContent(Nat),
-    Int8Content(i8),
-    Int16Content(i16),
-    Int32Content(i32),
-    Int64Content(i64),
-    FloatContent(f64), // motoko only support f64
-    NestedContent(Vec<(String, GenericValue)>),
-}
-
-#[derive(CandidType, Clone, Deserialize, Debug)]
-pub struct Event {
-    pub nft_canister_id: Principal,
-    pub fungible_id: Option<Principal>,
-    pub token_id: String,
-    pub operation: String,
-
-    pub traits: Option<HashMap<String, GenericValue>>,
-    pub price: Option<Nat>,
-    pub buyer: Option<Principal>,
-    pub seller: Option<Principal>,
-}
-
-#[derive(CandidType, Clone, Deserialize, Debug)]
-pub struct Offer {
-    pub buyer: Principal,
-    pub fungible: Principal,
-    pub price: Nat,
-}
-#[derive(CandidType, Clone, Deserialize, Debug)]
-pub struct Sale {
-    pub buyer: Principal,
-    pub fungible: Principal,
-    pub price: Nat,
-    pub time: Nat,
-}
-
-#[derive(Default, Clone, Deserialize, Debug, CandidType)]
-pub struct TokenData {
-    pub id: String,
-    pub traits: Option<HashMap<String, GenericValue>>,
-
-    pub offers: Vec<Offer>,
-    pub best_offer: Option<Nat>,
-    pub price: Option<Nat>,
-    pub last_sale: Option<Sale>,
-
-    pub last_listing: Option<Nat>,
-    pub last_offer: Option<Nat>,
-}
-
-pub type Index = HashMap<String, Vec<String>>;
 
 pub struct Ledger {
     pub nft_canister_id: Principal,
@@ -109,7 +48,7 @@ impl Ledger {
             // improvement: use dmsort which is extremely efficient at mostly sorted arrays
             sorted.push(token_id);
             sorted.sort_by_cached_key(|id| {
-                match db.entry(id.to_string()).or_default().sale.clone() {
+                match db.entry(id.to_string()).or_default().last_sale.clone() {
                     Some(sale) => sale.price,
                     None => 0.into(),
                 }
