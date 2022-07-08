@@ -44,7 +44,55 @@ for page in {0..1}; do
   dfx canister call curation query "(
     record {
       sort_key=\"all\";
+      page=$page;
+    }
+  )"
+done
+
+
+echo "-> trait filter query for random traits"
+for i in {0..1}; do
+  trait=${traits[$((RANDOM % ${#traits[@]}))]}
+  printf "page 0 (Base: $trait)"
+  dfx canister call curation query "(
+    record {
+      sort_key=\"all\";
       page=0;
+      traits=opt vec {
+        record {
+          \"Base\";
+          variant {
+            \"TextContent\" = \"$trait\"
+          };
+        }
+      };
+    }
+  )"
+done
+
+echo "-> trait filter query for multiple random traits"
+for i in {0..1}; do
+  trait1=${traits[$((RANDOM % ${#traits[@]}))]}
+  trait2=${traits[$((RANDOM % ${#traits[@]}))]}
+  printf "page 0 (Base: $trait)"
+  dfx canister call curation query "(
+    record {
+      sort_key=\"all\";
+      page=0;
+      traits=opt vec {
+        record {
+          \"Base\";
+          variant {
+            \"TextContent\" = \"$trait\"
+          };
+        };
+        record {
+          \"Base\";
+          variant {
+            \"TextContent\" = \"$trait1\"
+          };
+        };
+      };
     }
   )"
 done

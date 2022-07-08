@@ -21,7 +21,7 @@ pub enum GenericValue {
 
 /// Query Request
 ///
-/// Request for indexed data
+/// ### Required Arguments
 ///
 /// * `sort_key` - sort key. Possible options include:
 ///   - `listing_price` - listing price.
@@ -32,18 +32,27 @@ pub enum GenericValue {
 ///   - `last_sale` - recently sold tokens.
 ///   - `all` - all indexed tokens.
 /// * `page` - page number. If `null`, returns the last (most recent) page of results. Order is backwards
-/// * `reverse_order` - if `true`, returns results in ascending order. If `null` or `false`, returns results in descending order
+///
+/// ### Optional Arguments
+///
+/// * `count` - number of results to return. Default is 10, max 64
+/// * `offset` - For complicated filter queries past the first page (0), specify this parameter to hint the previous request left off at a specific point in the index. Default is 0.
+/// * `traits` - filter results by traits. Passed as a vec of (key, value) tuples.
+/// * `reverse` - Default: false. If true, returns results in reverse (ascending) order
 #[derive(CandidType, Clone, Deserialize)]
 pub struct QueryRequest {
     pub sort_key: String,
     pub page: usize,
-    pub reverse_order: Option<bool>,
     pub count: Option<usize>,
+    pub offset: Option<usize>,
+    pub traits: Option<Vec<(String, GenericValue)>>,
+    pub reverse: Option<bool>,
 }
 
 #[derive(CandidType, Clone, Debug)]
 pub struct QueryResponse {
     pub total: usize,
+    pub offset: usize,
     pub data: Vec<TokenData>,
     pub error: Option<String>,
 }

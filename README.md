@@ -16,7 +16,26 @@
 - [x] sale db type
 - [x] handle direct buy and accept offer events properly
 - [x] track fungible id with offers
+
 - [ ] built trait index
+- [ ] batch insertion
+- [ ] jelly proxy
+- [ ] (future) hook up to jelly and further optimizations!
+
+## Canister creation/registration
+
+- jelly canister creates canister id on behalf of a user (`jelly_canister_create` call sent with cycles - 2-4T)
+- jelly sets itself and the user as the controller/custodian (to insert events)
+- init argument performs handshake to jelly, which allows
+
+```
+1. plug call using XTC or thru cycles canister, to create a canister id. Jelly spawns a canister id and assigns it to the user
+2. users then deploy to their canister id the curation canister, or we do.
+  - canister is initialized with the jelly set as the source of truth
+3. at first, we manually configure the collection on jelly using addCollection and a fungible token
+  - this could be switched to a 2 part registration, one for the deployment of the curation canister, another from dab on submission
+  - can happen in either order, once both are submitted/handshaked, collection is in
+```
 
 ## Curation canister
 

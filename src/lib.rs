@@ -2,7 +2,7 @@ use crate::types::*;
 use candid::{candid_method, export_service, Principal};
 use ic_cdk::caller;
 use ic_cdk_macros::*;
-use std::vec;
+use std::{collections::HashSet, vec};
 
 mod ledger;
 mod types;
@@ -26,52 +26,102 @@ fn query(request: QueryRequest) -> QueryResponse {
         if size > PAGE_SIZE_LIMIT {
             size = PAGE_SIZE_LIMIT;
         }
+        let mut offset = match request.offset {
+            Some(offset) => offset,
+            None => {
+                if request.page != 0 && request.traits.is_some() {
+                    return QueryResponse {
+                        total: 0,
+                        offset: 0,
+                        data: result,
+                        error: Some("Offset required for filtered pages > 0".to_string()),
+                    };
+                }
+
+                0
+            }
+        };
 
         let indexes = &ledger.sort_index;
-        match indexes.get(&request.sort_key) {
+        let res = match indexes.get(&request.sort_key) {
             // if sort key is not found, return empty result
             None => QueryResponse {
                 total: 0,
+                offset,
                 data: result,
                 error: Some("Sort key not found".to_string()),
             },
             Some(sorted) => {
+                // build hashset of accepted token ids from traits, if provided
+                let mut accepted_ids: HashSet<String> = HashSet::new();
+                if let Some(traits) = request.traits.clone() {
+                    for (key, value) in traits {
+                        // check if key val exists in trait map
+                        if let Some(trait_key) = ledger.trait_maps.get(&key) {
+                            if let Some(tokens) = trait_key.get(&value) {
+                                // if value exists, add to accepted_ids
+                                for id in tokens {
+                                    accepted_ids.insert(id.clone());
+                                }
+                            }
+                        }
+                    }
+
+                    // if no accepted_ids, return empty result
+                    if accepted_ids.is_empty() {
+                        return QueryResponse {
+                            total: 0,
+                            offset,
+                            data: result,
+                            error: Some(
+                                "No tokens found under the specified trait key/vals".to_string(),
+                            ),
+                        };
+                    }
+                }
+
                 let max_len = sorted.len();
 
-                match request.reverse_order.unwrap_or(false) {
+                match request.reverse.unwrap_or(false) {
                     false => {
                         // descending order, default
 
-                        let end = max_len - (size * request.page);
-                        if end > max_len {
+                        let start_offset = size * request.page + offset;
+                        if start_offset > max_len {
                             // out of bounds, return nothing!
                             return QueryResponse {
-                                total: max_len,
+                                total: 0,
+                                offset,
                                 data: result,
                                 error: Some("Page out of bounds".to_string()),
                             };
                         }
+                        let start = max_len - start_offset;
 
-                        let start;
-                        if end < size {
-                            // out of bounds, go as far as we can!
-                            start = 0;
-                        } else {
-                            start = end - size;
-                        }
-
-                        let mut index = end;
-                        while index > start && index != 0 {
+                        let mut scanned = 0;
+                        let mut index = start;
+                        while scanned < size && index > 0 {
                             index -= 1;
+                            let token = &sorted[index];
 
-                            match ledger.db.get(&sorted[index].to_string()) {
-                                Some(token) => result.push(token.clone()),
-                                None => (),
+                            // check if no filters, or if token is in the set of accepted ids
+                            if request.traits.is_none() || accepted_ids.contains(token) {
+                                match ledger.db.get(token) {
+                                    Some(token) => {
+                                        scanned += 1;
+                                        result.push(token.clone());
+                                    }
+                                    None => {}
+                                }
+                                // do nothing if token is not in the set of accepted ids
+                            } else {
+                                offset += 1;
                             }
                         }
 
                         QueryResponse {
                             total: max_len,
+                            offset,
                             data: result,
                             error: None,
                         }
@@ -79,11 +129,12 @@ fn query(request: QueryRequest) -> QueryResponse {
                     true => {
                         // ascending order
 
-                        let start = size * request.page;
+                        let start = size * request.page + offset;
                         if start > max_len {
                             // out of bounds, return nothing!
                             return QueryResponse {
                                 total: max_len,
+                                offset,
                                 data: result,
                                 error: Some("Page out of bounds".to_string()),
                             };
@@ -109,12 +160,15 @@ fn query(request: QueryRequest) -> QueryResponse {
                         QueryResponse {
                             total: max_len,
                             data: result,
+                            offset,
                             error: None,
                         }
                     }
                 }
             }
-        }
+        };
+
+        res
     })
 }
 

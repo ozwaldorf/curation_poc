@@ -1,5 +1,5 @@
 use crate::types::*;
-use candid::{parser::token, Nat, Principal};
+use candid::{Nat, Principal};
 use ic_cdk::api::time;
 use std::{cell::RefCell, collections::HashMap};
 
