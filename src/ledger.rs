@@ -1,5 +1,5 @@
 use crate::types::*;
-use candid::{Nat, Principal};
+use candid::{parser::token, Nat, Principal};
 use ic_cdk::api::time;
 use std::{cell::RefCell, collections::HashMap};
 
@@ -12,8 +12,8 @@ pub struct Ledger {
     pub custodians: Vec<Principal>,
     // pre-sorted indexes
     pub sort_index: Index,
-    // filter items: index
-    pub filter_maps: HashMap<String, Index>,
+    // filter key: generic value: index
+    pub trait_maps: HashMap<String, GenericIndex>,
     // token id: token data
     pub db: HashMap<String, TokenData>,
 }
@@ -33,7 +33,7 @@ impl Ledger {
                 ("last_sale".to_string(), vec![]),
                 ("all".to_string(), vec![]),
             ]),
-            filter_maps: HashMap::new(),
+            trait_maps: HashMap::new(),
             db: HashMap::new(),
         }
     }
@@ -143,6 +143,18 @@ impl Ledger {
         sort_index.retain(|token| *token != id);
     }
 
+    fn push_trait(&mut self, token_id: String, name: String, value: GenericValue) {
+        let trait_index = self
+            .trait_maps
+            .entry(name)
+            .or_default()
+            .entry(value)
+            .or_default();
+        if !trait_index.contains(&token_id) {
+            trait_index.push(token_id);
+        }
+    }
+
     pub fn index_event(&mut self, event: Event) -> Result<(), &'static str> {
         let mut token = self.db.entry(event.token_id.clone()).or_default();
         let time = time();
@@ -150,14 +162,14 @@ impl Ledger {
         match event.operation.as_str() {
             "mint" => {
                 // load new metadata into canister
-
-                // if let Some(traits) = event.traits.clone() {
-                //     for (_k, _v) in traits.clone() {
-                //         // TODO: insert to trait map
-                //     }
-                // }
                 token.id = event.token_id.clone();
                 token.traits = event.traits.clone();
+
+                if let Some(traits) = event.traits.clone() {
+                    for (k, v) in traits.clone() {
+                        self.push_trait(event.token_id.clone(), k, v);
+                    }
+                }
             }
 
             "makeListing" => {

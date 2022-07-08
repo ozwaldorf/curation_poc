@@ -1,7 +1,7 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use std::collections::HashMap;
 
-#[derive(CandidType, Clone, Deserialize, Debug)]
+#[derive(CandidType, Clone, Deserialize, Debug, Hash, Eq, PartialEq)]
 pub enum GenericValue {
     BoolContent(bool),
     TextContent(String),
@@ -16,7 +16,6 @@ pub enum GenericValue {
     Int16Content(i16),
     Int32Content(i32),
     Int64Content(i64),
-    FloatContent(f64), // motoko only support f64
     NestedContent(Vec<(String, GenericValue)>),
 }
 
@@ -91,3 +90,4 @@ pub struct TokenData {
 }
 
 pub type Index = HashMap<String, Vec<String>>;
+pub type GenericIndex = HashMap<GenericValue, Vec<String>>;

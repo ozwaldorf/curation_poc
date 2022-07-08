@@ -152,6 +152,7 @@ fn export_candid() -> String {
     __export_service()
 }
 
+/// Run `cargo test` to generate the updated candid file in `PROJECT_ROOT/candid/curation.did`
 #[cfg(test)]
 mod tests {
     use super::*;
