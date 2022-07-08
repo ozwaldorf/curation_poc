@@ -69,7 +69,7 @@
 
 ideas:
 
-- 1. easy: iterate through sort key until we reach the final desired count
+- 1. easy: iterate through sort key until we reach the final desired count (most likely for poc)
 
   - build list of token ids for selected traits, just push to a single array
   - iterate through sort key and only push results that are included in the accepted tokens array
@@ -78,12 +78,32 @@ ideas:
 
 - 2. medium: seperate update call `filter_query` that implements #1, but caches the request/last result index to resume filtering to achieve pagination
 
+  - iteration of #1
   - need to store db as a btreemap, to get a root hash
   - request cache stored for the duration of the dbs hash, any change would wipe cache
   - request_cache: ([...sorted_traits_request], db_hash) -> last_scanned_index
 
-- 3. hard: precompute sort indexes for each of the tokens traits on insertion
-  - combine precomputed sort indexes for multiple trait selections, need to dedupe
+- 3. hard: preflight query + opt update + query
+
+  - iteration of #2, cache stored
+  - CHECK_CACHE query for request - this could also be a query cache
+  - PRELOAD_CACHE update if request is falsey
+  - QUERY_CACHE query for paginated data from cache
+  - pros:
+    - can compute once per db state for unlimited users, scales really well
+    - have total number of items from the getgo
+
+- 4. hard: precompute sort indexes for each of the tokens traits on insertion
+
+  - iteration of #2, could use this instead of #3
+  - combine precomputed sort indexes for multiple trait selections during query, need to dedupe
+
+  - pros:
+    - fastest for users querying for data
+    - single trait requests nearly instant
+    - minimal computation (merging pre sorted arrays excluding duplicates)
+  - cons:
+    - heavy computation on insert, for existing insert computation x and number of traits y, XY computation time
 
 ---
 
