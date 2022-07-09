@@ -111,11 +111,13 @@ fn query(request: QueryRequest) -> QueryResponse {
                                         scanned += 1;
                                         result.push(token.clone());
                                     }
-                                    None => {}
+                                    None => {
+                                        // db entry not found, should we log for removal?
+                                    }
                                 }
                                 // do nothing if token is not in the set of accepted ids
                             } else {
-                                offset += 1;
+                                offset += 1; // inc offset to leverage with next call
                             }
                         }
 
@@ -140,20 +142,27 @@ fn query(request: QueryRequest) -> QueryResponse {
                             };
                         }
 
-                        let end;
-                        if start + size > max_len {
-                            // out of bounds, go as far as we can!
-                            end = max_len;
-                        } else {
-                            end = start + size;
-                        }
-
+                        let mut scanned = 0;
                         let mut index = start;
-                        while index < end {
-                            match ledger.db.get(&sorted[index].to_string()) {
-                                Some(token) => result.push(token.clone()),
-                                None => (),
+                        while scanned < size && index < max_len {
+                            let token = &sorted[index];
+
+                            // check if no filters, or if token is in the set of accepted ids
+                            if request.traits.is_none() || accepted_ids.contains(token) {
+                                match ledger.db.get(token) {
+                                    Some(token) => {
+                                        scanned += 1;
+                                        result.push(token.clone());
+                                    }
+                                    None => {
+                                        // db entry not found, should we log here for removal?
+                                    }
+                                }
+                                // do nothing if token is not in the set of accepted ids
+                            } else {
+                                offset += 1;
                             }
+
                             index += 1;
                         }
 

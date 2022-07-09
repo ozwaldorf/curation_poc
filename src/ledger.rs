@@ -73,10 +73,9 @@ impl Ledger {
         let mut db = self.db.clone();
 
         // check if key exists already
-        if !sorted.contains(&token_id) {
+        if sorted.contains(&token_id) {
             // key exists, just sort the array
             // improvement: use dmsort which is extremely efficient at mostly sorted arrays
-            sorted.push(token_id);
             sorted.sort_by_cached_key(|id| {
                 db.entry(id.to_string())
                     .or_default()
@@ -104,7 +103,7 @@ impl Ledger {
         let mut db = self.db.clone();
 
         // check if key exists already
-        if !sorted.contains(&token_id) {
+        if sorted.contains(&token_id) {
             // key exists, just sort the array
             // improvement: use dmsort which is extremely efficient at mostly sorted arrays
             sorted.sort_by_cached_key(|id| {
