@@ -264,3 +264,28 @@ for page in {0..0}; do
     }
   )"
 done
+
+trait1=${traits[$((RANDOM % ${#traits[@]}))]}
+trait2=${traits[$((RANDOM % ${#traits[@]}))]}
+echo "-> ascending trait filter query for multiple random traits, sk=last_sale (Base: $trait1 | $trait2), page 0"
+dfx canister call curation query "(
+  record {
+    sort_key=\"last_sale\";
+    page=0;
+    reverse=opt(true);
+    traits=opt vec {
+      record {
+        \"Base\";
+        variant {
+          \"TextContent\" = \"$trait1\"
+        };
+      };
+      record {
+        \"Base\";
+        variant {
+          \"TextContent\" = \"$trait2\"
+        };
+      };
+    };
+  }
+)"
