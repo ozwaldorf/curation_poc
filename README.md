@@ -17,7 +17,7 @@
 - [x] handle direct buy and accept offer events properly
 - [x] track fungible id with offers
 
-- [ ] built trait index
+- [x] basic trait filter implementation (iterate results, optimization is passing an optional offset to skip over a certain number of already indexed tokens under the sort key)
 - [ ] batch insertion
 - [ ] jelly proxy
 - [ ] (future) hook up to jelly and further optimizations!

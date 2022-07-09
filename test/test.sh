@@ -49,53 +49,47 @@ for page in {0..1}; do
   )"
 done
 
-
-echo "-> trait filter query for random traits"
-for i in {0..1}; do
-  trait=${traits[$((RANDOM % ${#traits[@]}))]}
-  printf "page 0 (Base: $trait)"
-  dfx canister call curation query "(
-    record {
-      sort_key=\"all\";
-      page=0;
-      traits=opt vec {
-        record {
-          \"Base\";
-          variant {
-            \"TextContent\" = \"$trait\"
-          };
-        }
-      };
-    }
-  )"
-done
-
-echo "-> trait filter query for multiple random traits"
-for i in {0..1}; do
-  trait1=${traits[$((RANDOM % ${#traits[@]}))]}
-  trait2=${traits[$((RANDOM % ${#traits[@]}))]}
-  printf "page 0 (Base: $trait)"
-  dfx canister call curation query "(
-    record {
-      sort_key=\"all\";
-      page=0;
-      traits=opt vec {
-        record {
-          \"Base\";
-          variant {
-            \"TextContent\" = \"$trait\"
-          };
+trait=${traits[$((RANDOM % ${#traits[@]}))]}
+echo "-> trait filter query for random single trait page 0 (Base: $trait), page 0"
+printf 
+dfx canister call curation query "(
+  record {
+    sort_key=\"all\";
+    page=0;
+    traits=opt vec {
+      record {
+        \"Base\";
+        variant {
+          \"TextContent\" = \"$trait\"
         };
-        record {
-          \"Base\";
-          variant {
-            \"TextContent\" = \"$trait1\"
-          };
+      }
+    };
+  }
+)"
+
+trait1=${traits[$((RANDOM % ${#traits[@]}))]}
+trait2=${traits[$((RANDOM % ${#traits[@]}))]}
+echo "-> trait filter query for multiple random traits (Base: $trait1 | $trait2), page 0"
+dfx canister call curation query "(
+  record {
+    sort_key=\"all\";
+    page=0;
+    traits=opt vec {
+      record {
+        \"Base\";
+        variant {
+          \"TextContent\" = \"$trait1\"
         };
       };
-    }
-  )"
-done
+      record {
+        \"Base\";
+        variant {
+          \"TextContent\" = \"$trait2\"
+        };
+      };
+    };
+  }
+)"
 
 
 
@@ -236,7 +230,7 @@ echo "-> acceptOffer for token 2 (price: $price)"
 dfx canister call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
-    token_id=\"1\";
+    token_id=\"2\";
     operation=\"acceptOffer\";
     buyer=opt principal\"$user_a\";
     price=opt($price);
