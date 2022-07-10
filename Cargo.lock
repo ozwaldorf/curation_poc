@@ -204,6 +204,7 @@ name = "curation"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "dmsort",
  "ic-cdk",
  "ic-cdk-macros",
  "serde",
@@ -244,6 +245,12 @@ dependencies = [
  "redox_users",
  "winapi",
 ]
+
+[[package]]
+name = "dmsort"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0bc8fbe9441c17c9f46f75dfe27fa1ddb6c68a461ccaed0481419219d4f10d3"
 
 [[package]]
 name = "either"

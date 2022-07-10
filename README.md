@@ -18,8 +18,15 @@
 - [x] track fungible id with offers
 
 - [x] basic trait filter implementation (iterate results, optimization is passing an optional offset to skip over a certain number of already indexed tokens under the sort key)
-- [ ] batch insertion
+- [ ] refactor pagination to use a last index instead of pages - this is a strat that works good for filtering.
+- [ ]
+
+Post POC:
+
 - [ ] jelly proxy
+- [ ] batch insertion
+- [ ] scale tests (load 10k tokens and perform 100s of actions)
+- [ ] move POC indexer/filter logic into a more generically defined common-lib
 - [ ] (future) hook up to jelly and further optimizations!
 
 ## Canister creation/registration
@@ -146,20 +153,6 @@ ideas:
 
 {
   [offer_count]: [
-    1592, 1245, 1292, ...
-  ]
-}
-
-```
-
-- optional: store user info
-
-(This is really hard to keep up to date without notification from nft contract)
-
-```
-
-{
-  [user principal]: [
     1592, 1245, 1292, ...
   ]
 }

@@ -47,21 +47,28 @@ impl Ledger {
             // key exists, just sort the array
             // improvement: use dmsort which is extremely efficient at mostly sorted arrays
             sorted.push(token_id);
-            sorted.sort_by_cached_key(|id| {
+            dmsort::sort_by_key(sorted, |id| {
                 match db.entry(id.to_string()).or_default().last_sale.clone() {
-                    Some(sale) => sale.price,
+                    Some(sale) => sale.price.clone(),
                     None => 0.into(),
                 }
             });
+            // old sort method
+            // sorted.sort_by_cached_key(|id| {
+            //     match db.entry(id.to_string()).or_default().last_sale.clone() {
+            //         Some(sale) => sale.price,
+            //         None => 0.into(),
+            //     }
+            // });
         } else {
             // not found, partition insert into sorted array
             let index = sorted.partition_point(|id| {
-                db.entry(id.clone())
-                    .or_default()
-                    .price
-                    .clone()
-                    .unwrap_or_default()
-                    < price
+                let sale_price = match db.entry(id.clone()).or_default().last_sale.clone() {
+                    Some(sale) => sale.price.clone(),
+                    None => 0.into(),
+                };
+
+                sale_price < price
             });
 
             sorted.insert(index, token_id.clone());
@@ -76,13 +83,21 @@ impl Ledger {
         if sorted.contains(&token_id) {
             // key exists, just sort the array
             // improvement: use dmsort which is extremely efficient at mostly sorted arrays
-            sorted.sort_by_cached_key(|id| {
+            dmsort::sort_by_key(sorted, |id| {
                 db.entry(id.to_string())
                     .or_default()
                     .price
                     .clone()
                     .unwrap_or_default()
             });
+            // old sort method
+            // sorted.sort_by_cached_key(|id| {
+            //     db.entry(id.to_string())
+            //         .or_default()
+            //         .price
+            //         .clone()
+            //         .unwrap_or_default()
+            // });
         } else {
             // not found, partition insert into sorted array
             let index = sorted.partition_point(|id| {
@@ -106,13 +121,21 @@ impl Ledger {
         if sorted.contains(&token_id) {
             // key exists, just sort the array
             // improvement: use dmsort which is extremely efficient at mostly sorted arrays
-            sorted.sort_by_cached_key(|id| {
+            dmsort::sort_by_key(sorted, |id| {
                 db.entry(id.to_string())
                     .or_default()
-                    .price
+                    .best_offer
                     .clone()
                     .unwrap_or_default()
             });
+            // old sort method
+            // sorted.sort_by_cached_key(|id| {
+            //     db.entry(id.to_string())
+            //         .or_default()
+            //         .best_offer
+            //         .clone()
+            //         .unwrap_or_default()
+            // });
         } else {
             // not found, partition insert into sorted array
             let index = sorted.partition_point(|id| {
@@ -132,6 +155,7 @@ impl Ledger {
     fn shift_or_push(&mut self, key: &str, id: String) {
         // remove and push; time based indexes
         let sort_index = self.sort_index.entry(key.to_string()).or_default();
+        // todo: iter from reverse until found, remove index, and push to end
         sort_index.retain(|token| *token != id);
         sort_index.push(id.clone());
     }
