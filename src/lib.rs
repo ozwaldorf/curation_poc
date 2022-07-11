@@ -18,7 +18,7 @@ const PAGE_SIZE_LIMIT: usize = 64;
 /// # Arguments
 /// * `request` - query request.
 #[query]
-#[candid_method]
+#[candid_method(query)]
 fn query(request: QueryRequest) -> QueryResponse {
     ledger::with(|ledger| {
         let mut result = vec![];

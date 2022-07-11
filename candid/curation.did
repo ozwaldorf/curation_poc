@@ -57,5 +57,5 @@ type TokenData = record {
 };
 service : (opt principal) -> {
   insert : (Event) -> (Result);
-  "query" : (QueryRequest) -> (QueryResponse);
+  "query" : (QueryRequest) -> (QueryResponse) query;
 }
