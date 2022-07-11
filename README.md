@@ -18,8 +18,9 @@
 - [x] track fungible id with offers
 
 - [x] basic trait filter implementation (iterate results, optimization is passing an optional offset to skip over a certain number of already indexed tokens under the sort key)
-- [ ] refactor pagination to use a last index instead of pages - this is a strat that works good for filtering.
-- [ ]
+- [x] refactor pagination to use a last index instead of pages - this is a strat that works good for filtering.
+- [x] basic UI preview to test and showcase
+- [ ] expand test dataset size
 
 Post POC:
 

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [ -z "$1" ]; then
+    NETWORK=local
+else
+    NETWORK=$1
+fi
+
+
 # Setup the environment
 traits=("Bronze" "Silver" "Gold" "Platinum" "Diamond")
 prices=(1 2 3 5 8 13 21 34 55 89 144) # lets get fibby!
@@ -21,7 +28,7 @@ for i in {0..14}; do
   trait=${traits[$((RANDOM % ${#traits[@]}))]}
   echo "mint $i (base: $trait)"
 
-  dfx canister call curation insert "(
+  dfx canister --network $NETWORK call curation insert "(
     record {
       nft_canister_id=principal\"$nft_canister_id\";
       token_id=\"$i\";
@@ -40,7 +47,7 @@ done
 
 echo "-> query for all tokens"
 printf "  $page: "
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"all\";
   }
@@ -49,7 +56,7 @@ dfx canister call curation query "(
 trait=${traits[$((RANDOM % ${#traits[@]}))]}
 echo "-> trait filter query for random single trait page 0 (Base: $trait), page 0"
 printf 
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"all\";
     traits=opt vec {
@@ -66,7 +73,7 @@ dfx canister call curation query "(
 trait1=${traits[$((RANDOM % ${#traits[@]}))]}
 trait2=${traits[$((RANDOM % ${#traits[@]}))]}
 echo "-> trait filter query for multiple random traits (Base: $trait1 | $trait2), page 0"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"all\";
     traits=opt vec {
@@ -93,7 +100,7 @@ for i in {0..4}; do
   price=${prices[$((RANDOM % ${#prices[@]}))]}
   echo "make listing for token $i (price: $price)"
 
-  dfx canister call curation insert "(
+  dfx canister --network $NETWORK call curation insert "(
     record {
       nft_canister_id=principal\"$nft_canister_id\";
       token_id=\"$i\";
@@ -104,13 +111,13 @@ for i in {0..4}; do
 done
 
 echo "-> query for tokens by 'last_listing' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"last_listing\";
   }
 )"
 echo "-> query for tokens by 'listing_price' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"listing_price\";
   }
@@ -123,7 +130,7 @@ for i in {5..9}; do
   price=${prices[$((RANDOM % ${#prices[@]}))]}
   echo "make offer for token $i (price: $price)"
 
-  dfx canister call curation insert "(
+  dfx canister --network $NETWORK call curation insert "(
     record {
       nft_canister_id=principal\"$nft_canister_id\";
       token_id=\"$i\";
@@ -135,13 +142,13 @@ for i in {5..9}; do
 done
 
 echo "-> query for tokens by 'last_offer' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"last_offer\";
   }
 )"
 echo "-> query for tokens by 'offer_price' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"offer_price\";
   }
@@ -150,7 +157,7 @@ dfx canister call curation query "(
 
 
 echo "-> 'cancelOffer' for token 5"
-dfx canister call curation insert "(
+dfx canister --network $NETWORK call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
     token_id=\"5\";
@@ -160,13 +167,13 @@ dfx canister call curation insert "(
 )"
 
 echo "-> query for tokens by 'last_offer' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"last_offer\";
   }
 )"
 echo "-> query for tokens by 'offer_price' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"offer_price\";
   }
@@ -175,7 +182,7 @@ dfx canister call curation query "(
 
 
 echo "-> make additional offer to token 6"
-dfx canister call curation insert "(
+dfx canister --network $NETWORK call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
     token_id=\"6\";
@@ -186,13 +193,13 @@ dfx canister call curation insert "(
 )"
 
 echo "-> query for tokens by 'last_offer' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"last_offer\";
   }
 )"
 echo "-> query for tokens by 'offer_price' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"offer_price\";
   }
@@ -202,7 +209,7 @@ dfx canister call curation query "(
 
 price=${prices[$((RANDOM % ${#prices[@]}))]}
 echo "-> directBuy for token 4 (price: $price)"
-dfx canister call curation insert "(
+dfx canister --network $NETWORK call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
     token_id=\"4\";
@@ -213,7 +220,7 @@ dfx canister call curation insert "(
 )"
 
 echo "-> acceptOffer for token 6 (price: 200)"
-dfx canister call curation insert "(
+dfx canister --network $NETWORK call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
     token_id=\"5\";
@@ -225,13 +232,13 @@ dfx canister call curation insert "(
 
 
 echo "-> query for tokens by 'last_sale' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"last_sale\";
   }
 )"
 echo "-> query for tokens by 'sale_price' (page 0)"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"sale_price\";
   }
@@ -240,14 +247,14 @@ dfx canister call curation query "(
 
 echo "-> query for all tokens"
 printf "  $page: "
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"all\";
   }
 )"
 
 echo "-> ascending trait filter query for multiple traits, sk=last_sale (Base: ${traits[1]} | ${traits[2]} | ${traits[3]}), page 0"
-dfx canister call curation query "(
+dfx canister --network $NETWORK call curation query "(
   record {
     sort_key=\"last_sale\";
     reverse=opt(true);
