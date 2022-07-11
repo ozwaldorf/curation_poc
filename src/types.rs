@@ -42,9 +42,8 @@ pub enum GenericValue {
 #[derive(CandidType, Clone, Deserialize)]
 pub struct QueryRequest {
     pub sort_key: String,
-    pub page: usize,
+    pub last_index: Option<usize>,
     pub count: Option<usize>,
-    pub offset: Option<usize>,
     pub traits: Option<Vec<(String, GenericValue)>>,
     pub reverse: Option<bool>,
 }
@@ -52,7 +51,7 @@ pub struct QueryRequest {
 #[derive(CandidType, Clone, Debug)]
 pub struct QueryResponse {
     pub total: usize,
-    pub offset: usize,
+    pub last_index: Option<usize>,
     pub data: Vec<TokenData>,
     pub error: Option<String>,
 }
