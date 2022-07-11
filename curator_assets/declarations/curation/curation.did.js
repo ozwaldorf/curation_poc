@@ -65,7 +65,7 @@ export const idlFactory = ({ IDL }) => {
   });
   return IDL.Service({
     'insert' : IDL.Func([Event], [Result], []),
-    'query' : IDL.Func([QueryRequest], [QueryResponse], []),
+    'query' : IDL.Func([QueryRequest], [QueryResponse], ['query']),
   });
 };
 export const init = ({ IDL }) => { return [IDL.Opt(IDL.Principal)]; };
