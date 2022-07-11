@@ -15,7 +15,7 @@ document.querySelector("form").addEventListener("submit", async (e) => {
   const traits = base_filter
     ? [
         base_list.map((base) => {
-          return ["Base", { TextContent: base.trim() }];
+          return ["base", { TextContent: base.trim() }];
         }),
       ]
     : [];
@@ -51,25 +51,33 @@ document.querySelector("form").addEventListener("submit", async (e) => {
   for (const i in resp.data) {
     const token = resp.data[i];
     const trait_list = () => {
-      let trait_string = "";
-      for (const trait of token.traits) {
-        trait_string += `
-        <tr>
-          <td>${trait[0][0]}</td>
-        </tr>
-        <tr>
-          <td>${trait[0][1].TextContent}</td>
-        </tr>
-      `;
+      let row1 = "<tr>";
+      let row2 = "<tr>";
+      // build trait name row
+      for (const trait of token.traits[0]) {
+        if (trait[0] !== "location") {
+          row1 += `<td>${trait[0]}</td>`;
+          row2 += `<td>${trait[1].TextContent}</td>`;
+        }
       }
+      row1 += "</tr>";
+      row2 += "</tr>";
+      const trait_string = row1 + row2;
+
+      console.log(trait_string);
+
       return trait_string;
     };
+
+    const traits = Object.fromEntries(token.traits[0]);
+    console.log(traits);
 
     list.innerHTML += `
     <div class="token">
       <div class="header">
           <p><small style="color: #333">(${i})</small> token ${token.id}<p>
-        </div>
+      </div>
+      <img src=${traits.location.TextContent}></img>
       <div class="container">
         <small>listing price: ${token.price[0] ? token.price : "none"}</small>
         <br>
@@ -93,7 +101,9 @@ document.querySelector("form").addEventListener("submit", async (e) => {
           token.last_sale[0] ? Number(token.last_sale[0].time) : "none"
         }</small>
         <hr>
-        <table>${trait_list()}</table>
+        <table><tbody>
+          ${trait_list()}
+        </tbody></table>
       </div>
     </div>
     `;

@@ -6,29 +6,36 @@ else
     NETWORK=$1
 fi
 
-
 # Setup the environment
 traits=("Bronze" "Silver" "Gold" "Platinum" "Diamond")
+traits2=("Diamond" "Psychedelic" "Emerald" "Sapphire" "Ruby")
 prices=(1 2 3 5 8 13 21 34 55 89 144) # lets get fibby!
 nft_canister_id="aaaaa-aa"
 user_a="ffuck-kxghi-gyvia-r5htr-246cy-acq5u-2tdgd-avtvf-jyqbt-xtmf7-cae"
 user_b="3crrz-quea6-mdmy3-3btit-f2mgf-esqo6-ybiz7-i6s4z-xrf7g-izcxw-zae"
 
-if ["$NETWORK" -eq "local"]; then
+if [ "$NETWORK" == "local" ]; then
     echo "-> Checking local replica..."
     dfx ping || dfx start --clean --background
 
     echo "-> Deploying curation canister..."
-    dfx deploy curation --argument '(null)'
+    dfx deploy --argument '(null)'
 fi
 
 
 
-echo "-> insert 'mint' events (tokens 0-14)..."
-for i in {0..14}; do
+echo "-> insert 'mint' events (tokens 0-99)..."
+for i in {0..99}; do
+  echo "mint $i"
+
   # Randomly select a trait
-  trait=${traits[$((RANDOM % ${#traits[@]}))]}
-  echo "mint $i (base: $trait)"
+  # fetch example token meta
+  token_meta=$(jq ".[$i]" test/data.json)
+  trait1=$(echo $token_meta | jq '.properties[0][1].TextContent')
+  trait2=$(echo $token_meta | jq '.properties[1][1].TextContent')
+  trait3=$(echo $token_meta | jq '.properties[2][1].TextContent')
+  trait4=$(echo $token_meta | jq '.properties[3][1].TextContent')
+  trait5=$(echo $token_meta | jq '.properties[5][1].TextContent')
 
   dfx canister --network $NETWORK call curation insert "(
     record {
@@ -37,11 +44,35 @@ for i in {0..14}; do
       operation=\"mint\";
       traits=opt vec {
         record {
-          \"Base\";
+          \"smallgem\";
           variant {
-            \"TextContent\" = \"$trait\"
+            \"TextContent\" = $trait1
           }
-        }
+        };
+        record {
+          \"biggem\";
+          variant {
+            \"TextContent\" = $trait2
+          }
+        };
+        record {
+          \"base\";
+          variant {
+            \"TextContent\" = $trait3
+          }
+        };
+        record {
+          \"rim\";
+          variant {
+            \"TextContent\" = $trait4
+          }
+        };
+        record {
+          \"location\";
+          variant {
+            \"TextContent\" = $trait5
+          }
+        };
       };
     }
   )"

@@ -195,6 +195,7 @@ If the curation canister facilitated any action (listing, offer, acceptance, or 
 - [x] basic trait filter implementation (iterate results, optimization is passing an optional offset to skip over a certain number of already indexed tokens under the sort key)
 - [x] refactor pagination to use a last index instead of pages - this is a strat that works good for filtering.
 - [x] basic UI preview to test and showcase
+- [x] ic mainnet deployment of POC
 - [ ] expand test dataset size
 
 Post POC:
