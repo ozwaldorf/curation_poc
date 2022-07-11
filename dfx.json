@@ -7,12 +7,12 @@
       "package": "curation",
       "candid": "candid/curation.did"
     },
-    "curator_assets": {
+    "curation_assets": {
       "dependencies": ["curation"],
       "frontend": {
-        "entrypoint": "curator_assets/src/index.html"
+        "entrypoint": "curation_assets/src/index.html"
       },
-      "source": ["curator_assets/assets", "dist/curator_assets/"],
+      "source": ["curation_assets/assets", "dist/curation_assets/"],
       "type": "assets"
     }
   },

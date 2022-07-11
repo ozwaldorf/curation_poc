@@ -1,16 +1,16 @@
 import { Actor, HttpAgent } from "@dfinity/agent";
 
 // Imports and re-exports candid interface
-import { idlFactory } from './curator_assets.did.js';
-export { idlFactory } from './curator_assets.did.js';
+import { idlFactory } from './curation_assets.did.js';
+export { idlFactory } from './curation_assets.did.js';
 // CANISTER_ID is replaced by webpack based on node environment
-export const canisterId = process.env.CURATOR_ASSETS_CANISTER_ID;
+export const canisterId = process.env.CURATION_ASSETS_CANISTER_ID;
 
 /**
  * 
  * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig}} [options]
- * @return {import("@dfinity/agent").ActorSubclass<import("./curator_assets.did.js")._SERVICE>}
+ * @return {import("@dfinity/agent").ActorSubclass<import("./curation_assets.did.js")._SERVICE>}
  */
  export const createActor = (canisterId, options) => {
   const agent = new HttpAgent({ ...options?.agentOptions });
@@ -32,7 +32,7 @@ export const canisterId = process.env.CURATOR_ASSETS_CANISTER_ID;
 };
   
 /**
- * A ready-to-use agent for the curator_assets canister
- * @type {import("@dfinity/agent").ActorSubclass<import("./curator_assets.did.js")._SERVICE>}
+ * A ready-to-use agent for the curation_assets canister
+ * @type {import("@dfinity/agent").ActorSubclass<import("./curation_assets.did.js")._SERVICE>}
  */
- export const curator_assets = createActor(canisterId);
+ export const curation_assets = createActor(canisterId);

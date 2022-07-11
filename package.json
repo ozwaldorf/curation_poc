@@ -1,5 +1,5 @@
 {
-  "name": "curator_assets",
+  "name": "curation_assets",
   "version": "0.1.0",
   "description": "Internet Computer starter application",
   "keywords": [
@@ -13,7 +13,7 @@
     "prebuild": "npm run copy:types",
     "start": "webpack serve --mode development --env development",
     "prestart": "npm run copy:types",
-    "copy:types": "rsync -avr .dfx/$(echo ${DFX_NETWORK:-'**'})/canisters/** --exclude='assets/' --exclude='idl/' --exclude='*.wasm' --exclude='*.most' --delete curator_assets/declarations"
+    "copy:types": "rsync -avr .dfx/$(echo ${DFX_NETWORK:-'**'})/canisters/** --exclude='assets/' --exclude='idl/' --exclude='*.wasm' --exclude='*.most' --delete curation_assets/declarations"
   },
   "devDependencies": {
     "@dfinity/agent": "0.12.0",

@@ -14,11 +14,13 @@ nft_canister_id="aaaaa-aa"
 user_a="ffuck-kxghi-gyvia-r5htr-246cy-acq5u-2tdgd-avtvf-jyqbt-xtmf7-cae"
 user_b="3crrz-quea6-mdmy3-3btit-f2mgf-esqo6-ybiz7-i6s4z-xrf7g-izcxw-zae"
 
-echo "-> Checking local replica..."
-dfx ping || dfx start --clean --background
+if ["$NETWORK" -eq "local"]; then
+    echo "-> Checking local replica..."
+    dfx ping || dfx start --clean --background
 
-echo "-> Deploying curation canister..."
-dfx deploy curation --argument '(null)'
+    echo "-> Deploying curation canister..."
+    dfx deploy curation --argument '(null)'
+fi
 
 
 
