@@ -2,47 +2,25 @@
 
 ![Curation and indexing flow](https://upld.is/QmaWQtL5TksCZgK5Dgm1EhUPZnhiXygKTRQm8zMeVLWxYV/curation_flow.png)
 
-## Tasks
+## POC Demo
 
-- [x] basic implementation that indexes tokens by most recent actions
-- [x] basic query method for token id results
+Frontend: https://j2brg-liaaa-aaaah-abmta-cai.ic0.app/
 
-- [x] index price and best offer
-- [x] build an internal db of token data, and respond with the full data instead of key names
+canister id: `jtc22-5aaaa-aaaah-abmsq-cai`
 
-- [x] request type def - predecessor for trait filters
-- [x] ascending/descending option
-- [x] sale price index
-- [x] sale db type
-- [x] handle direct buy and accept offer events properly
-- [x] track fungible id with offers
+## Running the project locally
 
-- [x] basic trait filter implementation (iterate results, optimization is passing an optional offset to skip over a certain number of already indexed tokens under the sort key)
-- [x] refactor pagination to use a last index instead of pages - this is a strat that works good for filtering.
-- [x] basic UI preview to test and showcase
-- [ ] expand test dataset size
+If you want to test your project locally, you can use the following commands:
 
-Post POC:
+```bash
+# Starts the replica, running in the background
+dfx start --background
 
-- [ ] jelly proxy
-- [ ] batch insertion
-- [ ] scale tests (load 10k tokens and perform 100s of actions)
-- [ ] move POC indexer/filter logic into a more generically defined common-lib
-- [ ] (future) hook up to jelly and further optimizations!
+# Deploys your canisters to the replica and generates your candid interface
+dfx deploy
 
-## Canister creation/registration
-
-- jelly canister creates canister id on behalf of a user (`jelly_canister_create` call sent with cycles - 2-4T)
-- jelly sets itself and the user as the controller/custodian (to insert events)
-- init argument performs handshake to jelly, which allows
-
-```
-1. plug call using XTC or thru cycles canister, to create a canister id. Jelly spawns a canister id and assigns it to the user
-2. users then deploy to their canister id the curation canister, or we do.
-  - canister is initialized with the jelly set as the source of truth
-3. at first, we manually configure the collection on jelly using addCollection and a fungible token
-  - this could be switched to a 2 part registration, one for the deployment of the curation canister, another from dab on submission
-  - can happen in either order, once both are submitted/handshaked, collection is in
+# Run the test file to generate some data
+./test/test.sh
 ```
 
 ## Curation canister
@@ -56,11 +34,7 @@ Post POC:
 
 - stores 2 types, filter maps and sorted vectors
 
-### Interface
-
-- provides nft index interface, and jelly proxy interface
-
-#### Indexer
+### Indexer
 
 - insert method for when jelly recieves a transaction, can push the data to the index canister.
 
@@ -69,11 +43,7 @@ Post POC:
 
 - Paginated querys for token id lists
 
-#### Proxy
-
-- all transaction methods from jelly (to proxy and insert)
-
-### Sorted Indexes
+#### Sorted Indexes
 
 - canister builds sorted indexes of token ids as the token entries are modified/created
 
@@ -92,7 +62,7 @@ Post POC:
 }
 ```
 
-### Trait filters
+#### Trait filters
 
 ideas:
 
@@ -160,7 +130,11 @@ ideas:
 
 ```
 
-## Proxy insertion
+### Proxy (ideas)
+
+- all transaction methods from jelly (to proxy and insert)
+
+#### Proxy insertion
 
 buy, offer, list, cancel events
 
@@ -173,7 +147,7 @@ buy, offer, list, cancel events
 4. update offer count map
 5. respond to user with success
 
-## Fee dispersal
+#### Fee dispersal
 
 If the curation canister facilitated any action (listing, offer, acceptance, or direct purchase), it recieves half of the protocol fee.
 
@@ -188,14 +162,45 @@ If the curation canister facilitated any action (listing, offer, acceptance, or 
 4. upgrade jelly canister (still locked) to push new transactions on main interface to curation canister
 5. re-enable jelly transactions
 
-## Running the project locally
+## Canister creation/registration (ideas)
 
-If you want to test your project locally, you can use the following commands:
+- jelly canister creates canister id on behalf of a user (`jelly_canister_create` call sent with cycles - 2-4T)
+- jelly sets itself and the user as the controller/custodian (to insert events)
+- init argument performs handshake to jelly, which allows
 
-```bash
-# Starts the replica, running in the background
-dfx start --background
-
-# Deploys your canisters to the replica and generates your candid interface
-dfx deploy
 ```
+1. plug call using XTC or thru cycles canister, to create a canister id. Jelly spawns a canister id and assigns it to the user
+2. users then deploy to their canister id the curation canister, or we do.
+  - canister is initialized with the jelly set as the source of truth
+3. at first, we manually configure the collection on jelly using addCollection and a fungible token
+  - this could be switched to a 2 part registration, one for the deployment of the curation canister, another from dab on submission
+  - can happen in either order, once both are submitted/handshaked, collection is in
+```
+
+## Tasks
+
+- [x] basic implementation that indexes tokens by most recent actions
+- [x] basic query method for token id results
+
+- [x] index price and best offer
+- [x] build an internal db of token data, and respond with the full data instead of key names
+
+- [x] request type def - predecessor for trait filters
+- [x] ascending/descending option
+- [x] sale price index
+- [x] sale db type
+- [x] handle direct buy and accept offer events properly
+- [x] track fungible id with offers
+
+- [x] basic trait filter implementation (iterate results, optimization is passing an optional offset to skip over a certain number of already indexed tokens under the sort key)
+- [x] refactor pagination to use a last index instead of pages - this is a strat that works good for filtering.
+- [x] basic UI preview to test and showcase
+- [ ] expand test dataset size
+
+Post POC:
+
+- [ ] jelly proxy
+- [ ] batch insertion
+- [ ] scale tests (load 10k tokens and perform 100s of actions)
+- [ ] move POC indexer/filter logic into a more generically defined common-lib
+- [ ] (future) hook up to jelly and further optimizations!
