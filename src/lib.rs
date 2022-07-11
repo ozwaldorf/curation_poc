@@ -26,28 +26,13 @@ fn query(request: QueryRequest) -> QueryResponse {
         if size > PAGE_SIZE_LIMIT {
             size = PAGE_SIZE_LIMIT;
         }
-        let mut offset = match request.offset {
-            Some(offset) => offset,
-            None => {
-                if request.page != 0 && request.traits.is_some() {
-                    return QueryResponse {
-                        total: 0,
-                        offset: 0,
-                        data: result,
-                        error: Some("Offset required for filtered pages > 0".to_string()),
-                    };
-                }
-
-                0
-            }
-        };
 
         let indexes = &ledger.sort_index;
         let res = match indexes.get(&request.sort_key) {
             // if sort key is not found, return empty result
             None => QueryResponse {
                 total: 0,
-                offset,
+                last_index: None,
                 data: result,
                 error: Some("Sort key not found".to_string()),
             },
@@ -71,7 +56,7 @@ fn query(request: QueryRequest) -> QueryResponse {
                     if accepted_ids.is_empty() {
                         return QueryResponse {
                             total: 0,
-                            offset,
+                            last_index: None,
                             data: result,
                             error: Some(
                                 "No tokens found under the specified trait key/vals".to_string(),
@@ -85,21 +70,20 @@ fn query(request: QueryRequest) -> QueryResponse {
                 match request.reverse.unwrap_or(false) {
                     false => {
                         // descending order, default
+                        let last_index = request.last_index.unwrap_or(max_len);
 
-                        let start_offset = size * request.page + offset;
-                        if start_offset > max_len {
+                        if last_index > max_len {
                             // out of bounds, return nothing!
                             return QueryResponse {
                                 total: 0,
-                                offset,
+                                last_index: None,
                                 data: result,
                                 error: Some("Page out of bounds".to_string()),
                             };
                         }
-                        let start = max_len - start_offset;
 
                         let mut scanned = 0;
-                        let mut index = start;
+                        let mut index = last_index;
                         while scanned < size && index > 0 {
                             index -= 1;
                             let token = &sorted[index];
@@ -116,34 +100,32 @@ fn query(request: QueryRequest) -> QueryResponse {
                                     }
                                 }
                                 // do nothing if token is not in the set of accepted ids
-                            } else {
-                                offset += 1; // inc offset to leverage with next call
                             }
                         }
 
                         QueryResponse {
                             total: max_len,
-                            offset,
+                            last_index: if index > 0 { Some(index) } else { None },
                             data: result,
                             error: None,
                         }
                     }
                     true => {
                         // ascending order
+                        let last_index = request.last_index.unwrap_or_default();
 
-                        let start = size * request.page + offset;
-                        if start > max_len {
+                        if last_index > max_len {
                             // out of bounds, return nothing!
                             return QueryResponse {
                                 total: max_len,
-                                offset,
+                                last_index: None,
                                 data: result,
                                 error: Some("Page out of bounds".to_string()),
                             };
                         }
 
                         let mut scanned = 0;
-                        let mut index = start;
+                        let mut index = last_index;
                         while scanned < size && index < max_len {
                             let token = &sorted[index];
 
@@ -159,17 +141,16 @@ fn query(request: QueryRequest) -> QueryResponse {
                                     }
                                 }
                                 // do nothing if token is not in the set of accepted ids
-                            } else {
-                                offset += 1;
                             }
 
                             index += 1;
+                            scanned += 1;
                         }
 
                         QueryResponse {
                             total: max_len,
+                            last_index: if index < max_len { Some(index) } else { None },
                             data: result,
-                            offset,
                             error: None,
                         }
                     }

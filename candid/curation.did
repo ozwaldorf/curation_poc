@@ -28,15 +28,14 @@ type Offer = record { fungible : principal; buyer : principal; price : nat };
 type QueryRequest = record {
   reverse : opt bool;
   traits : opt vec record { text; GenericValue };
-  page : nat64;
   count : opt nat64;
+  last_index : opt nat64;
   sort_key : text;
-  offset : opt nat64;
 };
 type QueryResponse = record {
   total : nat64;
   data : vec TokenData;
-  offset : nat64;
+  last_index : opt nat64;
   error : opt text;
 };
 type Result = variant { Ok; Err : text };
