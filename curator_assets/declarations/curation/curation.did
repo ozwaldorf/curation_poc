@@ -1,0 +1,61 @@
+type Event = record {
+  token_id : text;
+  traits : opt vec record { text; GenericValue };
+  seller : opt principal;
+  fungible_id : opt principal;
+  operation : text;
+  buyer : opt principal;
+  price : opt nat;
+  nft_canister_id : principal;
+};
+type GenericValue = variant {
+  Nat64Content : nat64;
+  Nat32Content : nat32;
+  BoolContent : bool;
+  Nat8Content : nat8;
+  Int64Content : int64;
+  NatContent : nat;
+  Nat16Content : nat16;
+  Int32Content : int32;
+  Int8Content : int8;
+  Int16Content : int16;
+  BlobContent : vec nat8;
+  NestedContent : vec record { text; GenericValue };
+  Principal : principal;
+  TextContent : text;
+};
+type Offer = record { fungible : principal; buyer : principal; price : nat };
+type QueryRequest = record {
+  reverse : opt bool;
+  traits : opt vec record { text; GenericValue };
+  count : opt nat64;
+  last_index : opt nat64;
+  sort_key : text;
+};
+type QueryResponse = record {
+  total : nat64;
+  data : vec TokenData;
+  last_index : opt nat64;
+  error : opt text;
+};
+type Result = variant { Ok; Err : text };
+type Sale = record {
+  time : nat;
+  fungible : principal;
+  buyer : principal;
+  price : nat;
+};
+type TokenData = record {
+  id : text;
+  traits : opt vec record { text; GenericValue };
+  offers : vec Offer;
+  best_offer : opt nat;
+  last_sale : opt Sale;
+  last_offer : opt nat;
+  price : opt nat;
+  last_listing : opt nat;
+};
+service : (opt principal) -> {
+  insert : (Event) -> (Result);
+  "query" : (QueryRequest) -> (QueryResponse);
+}

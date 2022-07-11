@@ -52,6 +52,8 @@ fn query(request: QueryRequest) -> QueryResponse {
                         }
                     }
 
+                    ic_cdk::println!("accepted_ids: {:?}", accepted_ids);
+
                     // if no accepted_ids, return empty result
                     if accepted_ids.is_empty() {
                         return QueryResponse {
