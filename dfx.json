@@ -6,6 +6,14 @@
       "type": "rust",
       "package": "curation",
       "candid": "candid/curation.did"
+    },
+    "curator_assets": {
+      "dependencies": ["curation"],
+      "frontend": {
+        "entrypoint": "curator_assets/src/index.html"
+      },
+      "source": ["curator_assets/assets", "dist/curator_assets/"],
+      "type": "assets"
     }
   },
   "defaults": {

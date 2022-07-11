@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>curator</title>
+    <base href="/" />
+    <link rel="icon" href="favicon.ico" />
+    <link type="text/css" rel="stylesheet" href="main.css" />
+  </head>
+  <body>
+    <main>
+      <img src="jelly.svg" alt="DFINITY logo" />
+      <form action="#">
+        <label for="sort_key">Sort Key</label>
+        <select name="sort_key" id="sort_key">
+          <option value="all">all</option>
+          <option value="listing_price">listing_price</option>
+          <option value="offer_price">offer_price</option>
+          <option value="sale_price">sale_price</option>
+          <option value="last_listing">last_listing</option>
+          <option value="last_offer">last_offer</option>
+          <option value="last_sale">last_sale</option>
+        </select>
+
+        <label for="reverse">Reverse order</label>
+        <input type="checkbox" name="reverse" id="reverse" value="false" />
+        <br>
+        <label for="count" >Count</label>
+        <input type="number" name="count" id="count" value="10" />
+        
+        <label for="last_index">Last Index</label>
+        <input type="text" name="last_index" id="last_index"/>
+        
+        <label for="base_filter">filter: base</label>
+        <input placeholder="ex: 'Bronze, Gold, Diamond'" type="text" name="base_filter" id="base_filter" />
+        <br>
+        <button type="submit">Query curation canister</button>
+      </form>
+    </main>
+    <div id="data"></div>
+  </body>
+</html>

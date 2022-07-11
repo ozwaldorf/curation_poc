@@ -89,7 +89,7 @@ dfx canister call curation query "(
 
 
 echo "-> insert 'makeListing' events (tokens 0-1)"
-for i in {0..1}; do
+for i in {0..4}; do
   price=${prices[$((RANDOM % ${#prices[@]}))]}
   echo "make listing for token $i (price: $price)"
 
@@ -118,8 +118,8 @@ dfx canister call curation query "(
 
 
 
-echo "-> insert 'makeOffer' events (tokens 1-3)"
-for i in {2..4}; do
+echo "-> insert 'makeOffer' events (tokens 5-9)"
+for i in {5..9}; do
   price=${prices[$((RANDOM % ${#prices[@]}))]}
   echo "make offer for token $i (price: $price)"
 
@@ -149,11 +149,11 @@ dfx canister call curation query "(
 
 
 
-echo "-> 'cancelOffer' for token 2"
+echo "-> 'cancelOffer' for token 5"
 dfx canister call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
-    token_id=\"2\";
+    token_id=\"5\";
     operation=\"cancelOffer\";
     buyer=opt principal\"$user_a\";
   }
@@ -174,13 +174,13 @@ dfx canister call curation query "(
 
 
 
-echo "-> make additional offer to token 3"
+echo "-> make additional offer to token 6"
 dfx canister call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
-    token_id=\"3\";
+    token_id=\"6\";
     operation=\"makeOffer\";
-    buyer=opt principal\"$user_a\";
+    buyer=opt principal\"$user_b\";
     price=opt(200);
   }
 )"
@@ -201,26 +201,25 @@ dfx canister call curation query "(
 
 
 price=${prices[$((RANDOM % ${#prices[@]}))]}
-echo "-> directBuy for token 3 (price: $price)"
+echo "-> directBuy for token 4 (price: $price)"
 dfx canister call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
-    token_id=\"3\";
+    token_id=\"4\";
     operation=\"directBuy\";
     buyer=opt principal\"$user_a\";
     price=opt($price);
   }
 )"
 
-price=${prices[$((RANDOM % ${#prices[@]}))]}
-echo "-> acceptOffer for token 2 (price: $price)"
+echo "-> acceptOffer for token 6 (price: 200)"
 dfx canister call curation insert "(
   record {
     nft_canister_id=principal\"$nft_canister_id\";
-    token_id=\"2\";
+    token_id=\"5\";
     operation=\"acceptOffer\";
-    buyer=opt principal\"$user_a\";
-    price=opt($price);
+    buyer=opt principal\"$user_b\";
+    price=opt(200);
   }
 )"
 
@@ -247,7 +246,7 @@ dfx canister call curation query "(
   }
 )"
 
-echo "-> ascending trait filter query for multiple traits, sk=last_sale (Base: $traits[1] | $traits[2] | $traits[3]), page 0"
+echo "-> ascending trait filter query for multiple traits, sk=last_sale (Base: ${traits[1]} | ${traits[2]} | ${traits[3]}), page 0"
 dfx canister call curation query "(
   record {
     sort_key=\"last_sale\";
@@ -256,19 +255,19 @@ dfx canister call curation query "(
       record {
         \"Base\";
         variant {
-          \"TextContent\" = \"$traits[1]\"
+          \"TextContent\" = \"${traits[1]}\"
         };
       };
       record {
         \"Base\";
         variant {
-          \"TextContent\" = \"$traits[2]\"
+          \"TextContent\" = \"${traits[2]}\"
         };
       };
       record {
         \"Base\";
         variant {
-          \"TextContent\" = \"$traits[3]\"
+          \"TextContent\" = \"${traits[3]}\"
         };
       };
     };
