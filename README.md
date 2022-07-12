@@ -13,14 +13,11 @@ canister id: `jtc22-5aaaa-aaaah-abmsq-cai`
 If you want to test your project locally, you can use the following commands:
 
 ```bash
-# Starts the replica, running in the background
-dfx start --background
-
-# Deploys your canisters to the replica and generates your candid interface
-dfx deploy
-
-# Run the test file to generate some data
+# Run the test file to deploy locally and generate some data
 ./test/test.sh
+
+# Run the test on mainnet IC
+./test/test.sh ic
 ```
 
 ## Curation canister
