@@ -11,6 +11,7 @@
   <body>
     <main>
       <img class="img-header" src="jelly.svg" alt="DFINITY logo" />
+      <h1>curation canister demo</h1>
       <form action="#">
         <label for="sort_key">Sort Key</label>
         <select name="sort_key" id="sort_key">
@@ -33,10 +34,12 @@
         <input type="text" name="last_index" id="last_index"/>
         
         <label for="base_filter">filter: base</label>
-        <input placeholder="ex: 'Bronze, Gold, Diamond'" type="text" name="base_filter" id="base_filter" />
+        <input type="text" placeholder="ex: 'Bronze, Gold, Diamond'" name="base_filter" id="base_filter" />
         <br>
         <button type="submit">Query curation canister</button>
       </form>
+      <div id="status">-</div>
+      <hr>
       <div id="data"></div>
     </main>
   </body>

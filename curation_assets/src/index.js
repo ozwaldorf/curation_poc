@@ -23,11 +23,12 @@ document.querySelector("form").addEventListener("submit", async (e) => {
   button.setAttribute("disabled", true);
 
   let list = document.getElementById("data");
+  let status = document.getElementById("status");
+  status.innerHTML = `<p>Loading...</p><hr>`;
   // clear the list
   while (list.firstChild) {
     list.removeChild(list.firstChild);
   }
-  list.innerHTML += `<p>Loading...</p><hr>`;
 
   // Interact with foo actor, calling the greet method
   const resp = await curation.query({
@@ -42,11 +43,10 @@ document.querySelector("form").addEventListener("submit", async (e) => {
 
   button.removeAttribute("disabled");
 
-  list.innerHTML = `
+  status.innerHTML = `
   <p>total (in index): ${resp.total} | last_index: ${
     resp.last_index[0] ? resp.last_index : "none"
-  } | error: ${resp.error[0] ? resp.error : "none"}</p>
-  <hr>`;
+  } | error: ${resp.error[0] ? resp.error : "none"}</p>`;
 
   for (const i in resp.data) {
     const token = resp.data[i];
@@ -74,10 +74,18 @@ document.querySelector("form").addEventListener("submit", async (e) => {
 
     list.innerHTML += `
     <div class="token">
-      <div class="header">
-          <p><small style="color: #333">(${i})</small> token ${token.id}<p>
+      
+      <div style="width:100%;height:0; padding-top:100%;position:relative;">
+        <img  src="${
+          traits.location.TextContent
+        }" style="position:absolute; top:0; left:0; width:100%;">
       </div>
-      <img src=${traits.location.TextContent}></img>
+      <div class="header">
+          <p>
+            <span style="color: #333"><small>(${i})</small></span> 
+            <span>#${token.id.toString().padStart(4, 0)}</span>
+          </p>
+      </div>
       <div class="container">
         <small>listing price: ${token.price[0] ? token.price : "none"}</small>
         <br>
