@@ -24,7 +24,7 @@ document.querySelector("form").addEventListener("submit", async (e) => {
 
   let list = document.getElementById("data");
   let status = document.getElementById("status");
-  status.innerHTML = `<p>Loading...</p><hr>`;
+  status.innerHTML = `<p>Loading...</p>`;
   // clear the list
   while (list.firstChild) {
     list.removeChild(list.firstChild);

@@ -1,6 +1,9 @@
 use candid::{CandidType, Deserialize, Nat, Principal};
 use std::collections::HashMap;
 
+pub const DEFAULT_PAGE_SIZE: usize = 10;
+pub const PAGE_SIZE_LIMIT: usize = 64;
+
 #[derive(CandidType, Clone, Deserialize, Debug, Hash, Eq, PartialEq)]
 pub enum GenericValue {
     BoolContent(bool),
@@ -97,5 +100,5 @@ pub struct TokenData {
     pub last_offer: Option<Nat>,
 }
 
-pub type Index = HashMap<String, Vec<String>>;
+pub type TokenIndex = HashMap<String, Vec<String>>;
 pub type GenericIndex = HashMap<GenericValue, Vec<String>>;
